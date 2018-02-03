@@ -1,0 +1,6 @@
+username = "username"
+password = "password"
+domain_name = "domain_name"
+project_id = "project_id"
+auth_url = "auth_url"
+image_name = "image_name"
