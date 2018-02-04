@@ -114,7 +114,7 @@ write_files:
         password="${password}"
         auth-url="https://identity.fra.cloud.inovex.io/v3"
         tenant-id="${project_id}"
-        domain-id="default"
+        domain-name="Default"
 
         [LoadBalancer]
         subnet-id="${subnet_id}"
@@ -145,6 +145,7 @@ write_files:
     path: /etc/kubernetes/kubeadm.yaml
     owner: root:root
     permissions: '0600'
+
 packages:
   - kubelet
   - kubeadm
@@ -152,7 +153,7 @@ packages:
   - jq
   - [docker-ce, 17.03.2~ce-0~ubuntu-xenial]
 
-# --experimental-keystone-url= auth_url --> didn't work
+# --experimental-keystone-url= auth_url --> didn't work # test v3
 # --> https://github.com/coreos/dex/blob/master/Documentation/connectors/gitlab.md
 # TODO create extra dir with kubernetes addons
 runcmd:

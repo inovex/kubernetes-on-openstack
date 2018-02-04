@@ -96,5 +96,12 @@ resource "openstack_compute_secgroup_v2" "secgroup_node" {
     from_group_id = "${openstack_compute_secgroup_v2.secgroup_master.id}"
   }
 
-  # TODO ->  30000-32767	Default port range for NodePort Services. Typically, these ports would need to be exposed to external load-balancers, or other external consumers of the application itself.
+  # Default range for NodePort services
+  rule {
+    from_port   = 30000
+    to_port     = 32767
+    ip_protocol = "tcp"
+    # TODO this should be limited to the LoadBalancer
+    cidr        = "0.0.0.0/0"
+  }
 }

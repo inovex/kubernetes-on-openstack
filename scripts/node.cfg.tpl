@@ -105,7 +105,6 @@ write_files:
 -   content: |
         [Service]
         Environment="KUBELET_EXTRA_ARGS=--cgroup-driver=systemd --cloud-provider=openstack --cloud-config=/etc/kubernetes/cloud-config"
-        # --node-labels=
     path: /etc/systemd/system/kubelet.service.d/20-kubeadm.conf
     owner: root:root
     permissions: '0644'
@@ -115,7 +114,7 @@ write_files:
         password="${password}"
         auth-url="https://identity.fra.cloud.inovex.io/v3"
         tenant-id="${project_id}"
-        domain-id="default"
+        domain-name="Default"
 
         [LoadBalancer]
         subnet-id="${subnet_id}"
