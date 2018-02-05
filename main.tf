@@ -26,6 +26,7 @@ data "template_file" "master_init" {
     password        = "${var.password}"
     project_id      = "${var.project_id}"
     subnet_id       = "${data.openstack_networking_network_v2.public.id}"
+    external_ip     = "${openstack_networking_floatingip_v2.public_ip.address}"
   }
 }
 

@@ -130,6 +130,8 @@ write_files:
         kind: MasterConfiguration
         kubernetesVersion: v1.9.2
         cloudProvider: openstack
+        apiServerCertSANs:
+          - ${external_ip}
 
         networking:
           serviceSubnet: "10.96.0.0/12"
@@ -153,6 +155,7 @@ packages:
   - jq
   - [docker-ce, 17.03.2~ce-0~ubuntu-xenial]
 
+# integrate: https://github.com/dims/openstack-cloud-controller-manager
 # --experimental-keystone-url= auth_url --> didn't work # test v3
 # --> https://github.com/coreos/dex/blob/master/Documentation/connectors/gitlab.md
 # TODO create extra dir with kubernetes addons
@@ -160,5 +163,8 @@ runcmd:
   - [ kubeadm, init, --config, /etc/kubernetes/kubeadm.yaml ]
   - [ mkdir, -p, /root/.kube ]
   - [ cp, -i, /etc/kubernetes/admin.conf, /root/.kube/config ]
+  - [ mkdir, -p, /home/ubuntu/.kube ]
+  - [ cp, -i, /etc/kubernetes/admin.conf, /home/ubuntu/.kube/config ]
+  - [ chown, ubuntu, /home/ubuntu/.kube/config ]
   - [ kubectl, apply, --kubeconfig=/etc/kubernetes/admin.conf, -f, "https://docs.projectcalico.org/v2.6/getting-started/kubernetes/installation/hosted/rbac-kdd.yaml" ]
   - [ kubectl, apply, --kubeconfig=/etc/kubernetes/admin.conf, -f, "https://docs.projectcalico.org/v2.6/getting-started/kubernetes/installation/hosted/kubernetes-datastore/calico-networking/1.7/calico.yaml" ]
