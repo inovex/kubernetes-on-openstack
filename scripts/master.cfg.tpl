@@ -168,3 +168,4 @@ runcmd:
   - [ chown, ubuntu, /home/ubuntu/.kube/config ]
   - [ kubectl, apply, --kubeconfig=/etc/kubernetes/admin.conf, -f, "https://docs.projectcalico.org/v2.6/getting-started/kubernetes/installation/hosted/rbac-kdd.yaml" ]
   - [ kubectl, apply, --kubeconfig=/etc/kubernetes/admin.conf, -f, "https://docs.projectcalico.org/v2.6/getting-started/kubernetes/installation/hosted/kubernetes-datastore/calico-networking/1.7/calico.yaml" ]
+  - [ kubectl, apply, --kubeconfig=/etc/kubernetes/admin.conf, -f, "https://raw.githubusercontent.com/kubernetes/dashboard/v1.8.2/src/deploy/recommended/kubernetes-dashboard.yaml" ]

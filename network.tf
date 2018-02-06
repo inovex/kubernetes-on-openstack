@@ -5,19 +5,21 @@ resource "openstack_networking_network_v2" "private" {
 }
 
 resource "openstack_networking_subnet_v2" "subnet_private" {
-  name       = "subnet_private"
-  network_id = "${openstack_networking_network_v2.private.id}"
-  cidr       = "172.16.0.0/12"
-  ip_version = 4
+  name            = "subnet_private"
+  network_id      = "${openstack_networking_network_v2.private.id}"
+  cidr            = "172.16.0.0/12"
+  ip_version      = 4
+  dns_nameservers = ["8.8.8.8", "8.8.4.4"]
 }
 
 data "openstack_networking_network_v2" "public" {
   name = "public"
 }
-
+# Warning: openstack_networking_router_v2.private_router: "external_gateway": [DEPRECATED] use external_network_id instead
 resource "openstack_networking_router_v2" "private_router" {
-  name             = "private_router"
-  external_gateway = "${data.openstack_networking_network_v2.public.id}"
+  name                = "private_router"
+  admin_state_up      = "true"
+  external_network_id = "${data.openstack_networking_network_v2.public.id}"
 }
 
 resource "openstack_networking_router_interface_v2" "private_router_interface" {
@@ -104,4 +106,29 @@ resource "openstack_compute_secgroup_v2" "secgroup_node" {
     # TODO this should be limited to the LoadBalancer
     cidr        = "0.0.0.0/0"
   }
+
+  # Allow tcp inside the Security Group
+  rule {
+    from_port   = 1
+    to_port     = 65535
+    ip_protocol = "tcp"
+    self        = true
+  }
+
+  # Allow tcp inside the overlay Network
+  rule {
+    from_port   = 1
+    to_port     = 65535
+    ip_protocol = "tcp"
+    cidr        = "192.168.0.0/16"
+  }
+
+  # Allow IPinIP for Calico
+  #rule {
+  #  from_port   = -1
+  #  to_port     = -1
+  #  ip_protocol = 94
+    #self        = true
+  #  cidr        = "0.0.0.0/0"
+  #}
 }
