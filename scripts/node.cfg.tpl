@@ -104,7 +104,8 @@ write_files:
     permissions: '0644'
 -   content: |
         [Service]
-        Environment="KUBELET_EXTRA_ARGS=--cgroup-driver=systemd --cloud-provider=openstack --cloud-config=/etc/kubernetes/cloud-config"
+        # --cloud-provider=external
+        Environment="KUBELET_EXTRA_ARGS=--cgroup-driver=systemd --cloud-provider=openstack --cloud-config=/etc/kubernetes/cloud-config --node-labels=node-role.kubernetes.io/node="
     path: /etc/systemd/system/kubelet.service.d/20-kubeadm.conf
     owner: root:root
     permissions: '0644'

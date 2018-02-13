@@ -57,3 +57,5 @@ variable bootstrap_token {
     type = "string"
     default = ""
 }
+
+# https://github.com/dims/openstack-cloud-controller-manager

@@ -104,6 +104,7 @@ write_files:
     permissions: '0644'
 -   content: |
         [Service]
+        # --cloud-provider=external
         Environment="KUBELET_EXTRA_ARGS=--cgroup-driver=systemd --cloud-provider=openstack --cloud-config=/etc/kubernetes/cloud-config"
     path: /etc/systemd/system/kubelet.service.d/20-kubeadm.conf
     owner: root:root
@@ -136,7 +137,7 @@ write_files:
         networking:
           serviceSubnet: "10.96.0.0/12"
           dnsDomain: "cluster.local"
-          podSubnet: ""${pod_subnet}"
+          podSubnet: "${pod_subnet}"
 
         token: ${bootstrap_token}
 
