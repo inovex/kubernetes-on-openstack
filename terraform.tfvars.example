@@ -7,3 +7,4 @@ image_name          = "image_name"
 node_count          = 4
 kubernetes_version  = "v1.9.3"
 pod_subnet          = "192.168.0.0/16" # e.g. for Calico
+cluster_name        = "fluffy_unicorn"

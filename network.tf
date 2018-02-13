@@ -1,11 +1,11 @@
 ### Inital VPC setup
 resource "openstack_networking_network_v2" "private" {
-  name           = "private"
+  name           = "${var.cluster_name}"
   admin_state_up = "true"
 }
 
 resource "openstack_networking_subnet_v2" "subnet_private" {
-  name            = "subnet_private"
+  name            = "subnet_${var.cluster_name}"
   network_id      = "${openstack_networking_network_v2.private.id}"
   cidr            = "172.16.0.0/16"
   ip_version      = 4
@@ -17,7 +17,7 @@ data "openstack_networking_network_v2" "public" {
 }
 # Warning: openstack_networking_router_v2.private_router: "external_gateway": [DEPRECATED] use external_network_id instead
 resource "openstack_networking_router_v2" "private_router" {
-  name                = "private_router"
+  name                = "${var.cluster_name}_router"
   admin_state_up      = "true"
   external_network_id = "${data.openstack_networking_network_v2.public.id}"
 }
@@ -47,8 +47,8 @@ resource "openstack_compute_floatingip_associate_v2" "node_pub_ip" {
 
 ## Security groupd for the Kubernetes master
 resource "openstack_networking_secgroup_v2" "secgroup_master" {
-  name        = "secgroup_nodes"
-  description = "Allow  access to the API server"
+  name        = "secgroup_master_${var.cluster_name}"
+  description = "Allow access to the API server"
 }
 
 resource "openstack_networking_secgroup_rule_v2" "secgroup_master_rule_api" {
@@ -62,7 +62,7 @@ resource "openstack_networking_secgroup_rule_v2" "secgroup_master_rule_api" {
 }
 
 resource "openstack_networking_secgroup_v2" "secgroup_node" {
-  name        = "secgroup_nodes"
+  name        = "secgroup_nodes_${var.cluster_name}"
   description = "Allow network functionality for kubelet"
 }
 
@@ -111,69 +111,15 @@ resource "openstack_networking_secgroup_rule_v2" "secgroup_node_rule_nodeport" {
   protocol          = "tcp"
   port_range_min    = 30000
   port_range_max    = 32767
-  #remote_group_id   = "${openstack_networking_secgroup_rule_v2.secgroup_master.id}"
+  #remote_group_id   = "${openstack_networking_secgroup_rule_v2.secgroup_master.id}" # <-- This should be the LB network
   remote_ip_prefix  = "0.0.0.0/0"
   security_group_id = "${openstack_networking_secgroup_v2.secgroup_node.id}"
 }
 
-resource "openstack_networking_secgroup_rule_v2" "secgroup_node_rule_tcp" {
+resource "openstack_networking_secgroup_rule_v2" "secgroup_node_rule_allow_inside" {
   direction         = "ingress"
   ethertype         = "IPv4"
-  protocol          = "tcp"
-  port_range_min    = 1
-  port_range_max    = 65535
-  #remote_group_id   = "${openstack_networking_secgroup_v2.secgroup_node.id}"
-  remote_ip_prefix  = "0.0.0.0/0"
-  security_group_id = "${openstack_networking_secgroup_v2.secgroup_node.id}"
-}
-
-resource "openstack_networking_secgroup_rule_v2" "secgroup_node_rule_tcp_egress" {
-  direction         = "egress"
-  ethertype         = "IPv4"
-  protocol          = "tcp"
-  port_range_min    = 1
-  port_range_max    = 65535
-  #remote_group_id   = "${openstack_networking_secgroup_v2.secgroup_node.id}"
-  remote_ip_prefix  = "0.0.0.0/0"
-  security_group_id = "${openstack_networking_secgroup_v2.secgroup_node.id}"
-}
-
-resource "openstack_networking_secgroup_rule_v2" "secgroup_node_rule_udp" {
-  direction         = "ingress"
-  ethertype         = "IPv4"
-  protocol          = "udp"
-  port_range_min    = 1
-  port_range_max    = 65535
-  #remote_group_id   = "${openstack_networking_secgroup_v2.secgroup_node.id}"
-  remote_ip_prefix  = "0.0.0.0/0"
-  security_group_id = "${openstack_networking_secgroup_v2.secgroup_node.id}"
-}
-
-resource "openstack_networking_secgroup_rule_v2" "secgroup_node_rule_udp_egress" {
-  direction         = "egress"
-  ethertype         = "IPv4"
-  protocol          = "udp"
-  port_range_min    = 1
-  port_range_max    = 65535
-  #remote_group_id   = "${openstack_networking_secgroup_v2.secgroup_node.id}"
-  remote_ip_prefix  = "0.0.0.0/0"
-  security_group_id = "${openstack_networking_secgroup_v2.secgroup_node.id}"
-}
-
-resource "openstack_networking_secgroup_rule_v2" "secgroup_node_rule_ipip_ingress" {
-  direction         = "ingress"
-  ethertype         = "IPv4"
-  protocol          = 94
-  #remote_group_id   = "${openstack_networking_secgroup_v2.secgroup_node.id}"
-  remote_ip_prefix  = "0.0.0.0/0"
-  security_group_id = "${openstack_networking_secgroup_v2.secgroup_node.id}"
-}
-
-resource "openstack_networking_secgroup_rule_v2" "secgroup_node_rule_ipip_egress" {
-  direction         = "egress"
-  ethertype         = "IPv4"
-  protocol          = 94
-  #remote_group_id   = "${openstack_networking_secgroup_v2.secgroup_node.id}"
-  remote_ip_prefix  = "0.0.0.0/0"
+  protocol          = "null"
+  remote_group_id   = "${openstack_networking_secgroup_v2.secgroup_node.id}"
   security_group_id = "${openstack_networking_secgroup_v2.secgroup_node.id}"
 }

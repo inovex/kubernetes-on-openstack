@@ -7,8 +7,15 @@ datasource:
   timeout: 10
   retries: 5
 
+# set the locale to a given locale
+# default: en_US.UTF-8
+locale: en_US.UTF-8
+# render template default-locale.tmpl to locale_configfile
+locale_configfile: /etc/default/locale
+
 repo_update: true
 repo_upgrade: all
+package_upgrade: true
 
 apt:
   preserve_sources_list: true
@@ -143,7 +150,7 @@ write_files:
           - ${external_ip}
 
         networking:
-          serviceSubnet: "10.96.0.0/12"
+          serviceSubnet: "10.96.0.0/16"
           dnsDomain: "cluster.local"
           podSubnet: "${pod_subnet}"
 

@@ -37,6 +37,10 @@ variable flavor {
     default = "c4.large"
 }
 
+variable cluster_name {
+    type = "string"
+}
+
 variable node_count {
     type = "string"
     default = 3

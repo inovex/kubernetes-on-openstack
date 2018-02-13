@@ -10,7 +10,7 @@ provider "openstack" {
 }
 
 resource "openstack_compute_keypair_v2" "basic_keypair" {
-  name       = "basic_keypair"
+  name       = "${var.cluster_name}_keypair"
   public_key = "${file(var.ssh_pub_key)}"
 }
 
@@ -46,7 +46,7 @@ data "template_cloudinit_config" "master_config" {
 }
 
 resource "openstack_compute_instance_v2" "master" {
-  name            = "kube-master"
+  name            = "${var.cluster_name}-kube-master"
   image_id        = "${data.openstack_images_image_v2.ubuntu.id}"
   flavor_name     = "${var.flavor}"
   key_pair        = "${openstack_compute_keypair_v2.basic_keypair.id}"
@@ -55,6 +55,7 @@ resource "openstack_compute_instance_v2" "master" {
 
   metadata {
     kubernetes    = "master"
+    cluster       = "${var.cluster_name}"
   }
 
   network {
@@ -88,7 +89,7 @@ data "template_cloudinit_config" "node_config" {
 
 resource "openstack_compute_instance_v2" "node" {
   count           = "${var.node_count}"
-  name            = "kube-node-${count.index}"
+  name            = "${var.cluster_name}-kube-node-${count.index}"
   image_id        = "${data.openstack_images_image_v2.ubuntu.id}"
   flavor_name     = "${var.flavor}"
   key_pair        = "${openstack_compute_keypair_v2.basic_keypair.id}"
@@ -97,6 +98,7 @@ resource "openstack_compute_instance_v2" "node" {
 
   metadata {
     kubernetes    = "node"
+    cluster       = "${var.cluster_name}"
   }
 
   network {
