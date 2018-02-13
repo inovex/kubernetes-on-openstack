@@ -7,7 +7,7 @@ resource "openstack_networking_network_v2" "private" {
 resource "openstack_networking_subnet_v2" "subnet_private" {
   name            = "subnet_private"
   network_id      = "${openstack_networking_network_v2.private.id}"
-  cidr            = "172.16.0.0/12"
+  cidr            = "172.16.0.0/16"
   ip_version      = 4
   #dns_nameservers = ["8.8.8.8", "8.8.4.4"]
 }

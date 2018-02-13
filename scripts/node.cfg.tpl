@@ -1,5 +1,12 @@
 #cloud-config
 # vim /var/lib/cloud/instance/cloud-config.txt
+datasource:
+ OpenStack:
+  metadata_urls: ["http://169.254.169.254"]
+  max_wait: -1
+  timeout: 10
+  retries: 5
+
 repo_update: true
 repo_upgrade: all
 
@@ -97,7 +104,8 @@ apt:
 write_files:
 -   content: |
         {
-          "exec-opts": ["native.cgroupdriver=systemd"]
+          "exec-opts": ["native.cgroupdriver=systemd"],
+          "bip": "172.26.0.1/16"
         }
     path: /etc/docker/daemon.json
     owner: root:root
