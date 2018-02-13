@@ -128,7 +128,7 @@ write_files:
 -   content: |
         apiVersion: kubeadm.k8s.io/v1alpha1
         kind: MasterConfiguration
-        kubernetesVersion: v1.9.2
+        kubernetesVersion: ${kubernetes_version}
         cloudProvider: openstack
         apiServerCertSANs:
           - ${external_ip}
@@ -136,7 +136,7 @@ write_files:
         networking:
           serviceSubnet: "10.96.0.0/12"
           dnsDomain: "cluster.local"
-          podSubnet: "192.168.0.0/16"
+          podSubnet: ""${pod_subnet}"
 
         token: ${bootstrap_token}
 
@@ -166,6 +166,6 @@ runcmd:
   - [ mkdir, -p, /home/ubuntu/.kube ]
   - [ cp, -i, /etc/kubernetes/admin.conf, /home/ubuntu/.kube/config ]
   - [ chown, ubuntu, /home/ubuntu/.kube/config ]
-  - [ kubectl, apply, --kubeconfig=/etc/kubernetes/admin.conf, -f, "https://docs.projectcalico.org/v2.6/getting-started/kubernetes/installation/hosted/rbac-kdd.yaml" ]
-  - [ kubectl, apply, --kubeconfig=/etc/kubernetes/admin.conf, -f, "https://docs.projectcalico.org/v2.6/getting-started/kubernetes/installation/hosted/kubernetes-datastore/calico-networking/1.7/calico.yaml" ]
+  - [ kubectl, apply, --kubeconfig=/etc/kubernetes/admin.conf, -f, "https://docs.projectcalico.org/v3.0/getting-started/kubernetes/installation/hosted/rbac-kdd.yaml" ]
+  - [ kubectl, apply, --kubeconfig=/etc/kubernetes/admin.conf, -f, "https://docs.projectcalico.org/v3.0/getting-started/kubernetes/installation/hosted/kubernetes-datastore/calico-networking/1.7/calico.yaml" ]
   - [ kubectl, apply, --kubeconfig=/etc/kubernetes/admin.conf, -f, "https://raw.githubusercontent.com/kubernetes/dashboard/v1.8.2/src/deploy/recommended/kubernetes-dashboard.yaml" ]

@@ -23,12 +23,14 @@ data "template_file" "master_init" {
   template = "${file("${path.module}/scripts/master.cfg.tpl")}"
 
   vars {
-    bootstrap_token = "${var.bootstrap_token != "" ? var.bootstrap_token : format("%s.%s", random_string.firstpart.result, random_string.secondpart.result)}"
-    username        = "${var.username}"
-    password        = "${var.password}"
-    project_id      = "${var.project_id}"
-    subnet_id       = "${data.openstack_networking_network_v2.public.id}"
-    external_ip     = "${openstack_networking_floatingip_v2.public_ip.address}"
+    bootstrap_token     = "${var.bootstrap_token != "" ? var.bootstrap_token : format("%s.%s", random_string.firstpart.result, random_string.secondpart.result)}"
+    username            = "${var.username}"
+    password            = "${var.password}"
+    project_id          = "${var.project_id}"
+    subnet_id           = "${data.openstack_networking_network_v2.public.id}"
+    external_ip         = "${openstack_networking_floatingip_v2.public_ip.address}"
+    kubernetes_version  = "${var.kubernetes_version}"
+    pod_subnet          = "${var.pod_subnet}"
   }
 }
 
@@ -48,7 +50,7 @@ resource "openstack_compute_instance_v2" "master" {
   image_id        = "${data.openstack_images_image_v2.ubuntu.id}"
   flavor_name     = "${var.flavor}"
   key_pair        = "${openstack_compute_keypair_v2.basic_keypair.id}"
-  security_groups = ["${openstack_compute_secgroup_v2.secgroup_master.id}", "${openstack_compute_secgroup_v2.secgroup_node.id}"]
+  security_groups = ["${openstack_networking_secgroup_v2.secgroup_master.id}", "${openstack_networking_secgroup_v2.secgroup_node.id}"]
   user_data       = "${data.template_cloudinit_config.master_config.rendered}"
 
   metadata {
@@ -64,12 +66,12 @@ data "template_file" "node_init" {
   template = "${file("${path.module}/scripts/node.cfg.tpl")}"
 
   vars {
-    bootstrap_token = "${var.bootstrap_token != "" ? var.bootstrap_token : format("%s.%s", random_string.firstpart.result, random_string.secondpart.result)}"
-    username        = "${var.username}"
-    password        = "${var.password}"
-    project_id      = "${var.project_id}"
-    subnet_id       = "${data.openstack_networking_network_v2.public.id}" #TODO ->"${var.subnet_id}"
-    api_server      = "${openstack_compute_instance_v2.master.access_ip_v4}"
+    bootstrap_token     = "${var.bootstrap_token != "" ? var.bootstrap_token : format("%s.%s", random_string.firstpart.result, random_string.secondpart.result)}"
+    username            = "${var.username}"
+    password            = "${var.password}"
+    project_id          = "${var.project_id}"
+    subnet_id           = "${data.openstack_networking_network_v2.public.id}" #TODO ->"${var.subnet_id}"
+    api_server          = "${openstack_compute_instance_v2.master.access_ip_v4}"
   }
 }
 
@@ -90,7 +92,7 @@ resource "openstack_compute_instance_v2" "node" {
   image_id        = "${data.openstack_images_image_v2.ubuntu.id}"
   flavor_name     = "${var.flavor}"
   key_pair        = "${openstack_compute_keypair_v2.basic_keypair.id}"
-  security_groups = ["${openstack_compute_secgroup_v2.secgroup_node.id}"]
+  security_groups = ["${openstack_networking_secgroup_v2.secgroup_node.id}"]
   user_data       = "${data.template_cloudinit_config.node_config.rendered}"
 
   metadata {

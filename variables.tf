@@ -42,7 +42,17 @@ variable node_count {
     default = 3
 }
 
-# Muste match: "[a-z0-9]{6}.[a-z0-9]{16}"
+variable kubernetes_version {
+    type = "string"
+    default = "v1.9.3"
+}
+
+variable pod_subnet {
+    type = "string"
+    default = "192.168.0.0/16"
+}
+
+# Must match: "[a-z0-9]{6}.[a-z0-9]{16}"
 variable bootstrap_token {
     type = "string"
     default = ""

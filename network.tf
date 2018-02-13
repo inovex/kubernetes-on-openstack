@@ -9,7 +9,7 @@ resource "openstack_networking_subnet_v2" "subnet_private" {
   network_id      = "${openstack_networking_network_v2.private.id}"
   cidr            = "172.16.0.0/12"
   ip_version      = 4
-  dns_nameservers = ["8.8.8.8", "8.8.4.4"]
+  #dns_nameservers = ["8.8.8.8", "8.8.4.4"]
 }
 
 data "openstack_networking_network_v2" "public" {
@@ -46,89 +46,134 @@ resource "openstack_compute_floatingip_associate_v2" "node_pub_ip" {
 }
 
 ## Security groupd for the Kubernetes master
-resource "openstack_compute_secgroup_v2" "secgroup_master" {
-  name        = "secgroup_master"
-  description = "Allow access to the API server"
-  # Allow access to the secure Kubernetes API
-  rule {
-    from_port   = 6443
-    to_port     = 6443
-    ip_protocol = "tcp"
-    cidr        = "0.0.0.0/0"
-  }
-
-  # Since we currently don't have a HA setup keep etcd secure
-  # 2379-2380 etcd server client API
+resource "openstack_networking_secgroup_v2" "secgroup_master" {
+  name        = "secgroup_nodes"
+  description = "Allow  access to the API server"
 }
 
-# Security group for the Kubernetes nodes
-resource "openstack_compute_secgroup_v2" "secgroup_node" {
+resource "openstack_networking_secgroup_rule_v2" "secgroup_master_rule_api" {
+  direction         = "ingress"
+  ethertype         = "IPv4"
+  protocol          = "tcp"
+  port_range_min    = 6443
+  port_range_max    = 6443
+  remote_ip_prefix  = "0.0.0.0/0"
+  security_group_id = "${openstack_networking_secgroup_v2.secgroup_master.id}"
+}
+
+resource "openstack_networking_secgroup_v2" "secgroup_node" {
   name        = "secgroup_nodes"
-  description = "Allow ICMP and ssh"
+  description = "Allow network functionality for kubelet"
+}
 
-  # Allow SSH
-  rule {
-    from_port   = 22
-    to_port     = 22
-    ip_protocol = "tcp"
-    cidr        = "0.0.0.0/0"
-  }
+resource "openstack_networking_secgroup_rule_v2" "secgroup_node_rule_ssh" {
+  direction         = "ingress"
+  ethertype         = "IPv4"
+  protocol          = "tcp"
+  port_range_min    = 22
+  port_range_max    = 22
+  remote_ip_prefix  = "0.0.0.0/0"
+  security_group_id = "${openstack_networking_secgroup_v2.secgroup_node.id}"
+}
 
-  # Allow ICMP
-  rule {
-    from_port   = -1
-    to_port     = -1
-    ip_protocol = "icmp"
-    cidr        = "0.0.0.0/0"
-  }
+resource "openstack_networking_secgroup_rule_v2" "secgroup_node_rule_icmp" {
+  direction         = "ingress"
+  ethertype         = "IPv4"
+  protocol          = "icmp"
+  remote_ip_prefix  = "0.0.0.0/0"
+  security_group_id = "${openstack_networking_secgroup_v2.secgroup_node.id}"
+}
 
-  # Kubelet API
-  rule {
-    from_port   = 10250
-    to_port     = 10250
-    ip_protocol = "tcp"
-    from_group_id = "${openstack_compute_secgroup_v2.secgroup_master.id}"
-  }
+resource "openstack_networking_secgroup_rule_v2" "secgroup_node_rule_kubelet" {
+  direction         = "ingress"
+  ethertype         = "IPv4"
+  protocol          = "tcp"
+  port_range_min    = 10250
+  port_range_max    = 10250
+  remote_group_id   = "${openstack_networking_secgroup_v2.secgroup_master.id}"
+  security_group_id = "${openstack_networking_secgroup_v2.secgroup_node.id}"
+}
 
-  # Read-only Kubelet API (Heapster)
-  rule {
-    from_port   = 10255
-    to_port     = 10255
-    ip_protocol = "tcp"
-    from_group_id = "${openstack_compute_secgroup_v2.secgroup_master.id}"
-  }
 
-  # Default range for NodePort services
-  rule {
-    from_port   = 30000
-    to_port     = 32767
-    ip_protocol = "tcp"
-    # TODO this should be limited to the LoadBalancer
-    cidr        = "0.0.0.0/0"
-  }
+resource "openstack_networking_secgroup_rule_v2" "secgroup_node_rule_heapster" {
+  direction         = "ingress"
+  ethertype         = "IPv4"
+  protocol          = "tcp"
+  port_range_min    = 10255
+  port_range_max    = 10255
+  remote_group_id   = "${openstack_networking_secgroup_v2.secgroup_master.id}"
+  security_group_id = "${openstack_networking_secgroup_v2.secgroup_node.id}"
+}
 
-  # Allow tcp inside the Security Group
-  rule {
-    from_port   = 1
-    to_port     = 65535
-    ip_protocol = "tcp"
-    self        = true
-  }
+resource "openstack_networking_secgroup_rule_v2" "secgroup_node_rule_nodeport" {
+  direction         = "ingress"
+  ethertype         = "IPv4"
+  protocol          = "tcp"
+  port_range_min    = 30000
+  port_range_max    = 32767
+  #remote_group_id   = "${openstack_networking_secgroup_rule_v2.secgroup_master.id}"
+  remote_ip_prefix  = "0.0.0.0/0"
+  security_group_id = "${openstack_networking_secgroup_v2.secgroup_node.id}"
+}
 
-  # Allow tcp inside the overlay Network
-  rule {
-    from_port   = 1
-    to_port     = 65535
-    ip_protocol = "tcp"
-    cidr        = "192.168.0.0/16"
-  }
+resource "openstack_networking_secgroup_rule_v2" "secgroup_node_rule_tcp" {
+  direction         = "ingress"
+  ethertype         = "IPv4"
+  protocol          = "tcp"
+  port_range_min    = 1
+  port_range_max    = 65535
+  #remote_group_id   = "${openstack_networking_secgroup_v2.secgroup_node.id}"
+  remote_ip_prefix  = "0.0.0.0/0"
+  security_group_id = "${openstack_networking_secgroup_v2.secgroup_node.id}"
+}
 
-  # Allow IPinIP for Calico
-  #rule {
-  #  from_port   = -1
-  #  to_port     = -1
-  #  ip_protocol = 94
-    #self        = true
-  #  cidr        = "0.0.0.0/0"
-  #}
+resource "openstack_networking_secgroup_rule_v2" "secgroup_node_rule_tcp_egress" {
+  direction         = "egress"
+  ethertype         = "IPv4"
+  protocol          = "tcp"
+  port_range_min    = 1
+  port_range_max    = 65535
+  #remote_group_id   = "${openstack_networking_secgroup_v2.secgroup_node.id}"
+  remote_ip_prefix  = "0.0.0.0/0"
+  security_group_id = "${openstack_networking_secgroup_v2.secgroup_node.id}"
+}
+
+resource "openstack_networking_secgroup_rule_v2" "secgroup_node_rule_udp" {
+  direction         = "ingress"
+  ethertype         = "IPv4"
+  protocol          = "udp"
+  port_range_min    = 1
+  port_range_max    = 65535
+  #remote_group_id   = "${openstack_networking_secgroup_v2.secgroup_node.id}"
+  remote_ip_prefix  = "0.0.0.0/0"
+  security_group_id = "${openstack_networking_secgroup_v2.secgroup_node.id}"
+}
+
+resource "openstack_networking_secgroup_rule_v2" "secgroup_node_rule_udp_egress" {
+  direction         = "egress"
+  ethertype         = "IPv4"
+  protocol          = "udp"
+  port_range_min    = 1
+  port_range_max    = 65535
+  #remote_group_id   = "${openstack_networking_secgroup_v2.secgroup_node.id}"
+  remote_ip_prefix  = "0.0.0.0/0"
+  security_group_id = "${openstack_networking_secgroup_v2.secgroup_node.id}"
+}
+
+resource "openstack_networking_secgroup_rule_v2" "secgroup_node_rule_ipip_ingress" {
+  direction         = "ingress"
+  ethertype         = "IPv4"
+  protocol          = 94
+  #remote_group_id   = "${openstack_networking_secgroup_v2.secgroup_node.id}"
+  remote_ip_prefix  = "0.0.0.0/0"
+  security_group_id = "${openstack_networking_secgroup_v2.secgroup_node.id}"
+}
+
+resource "openstack_networking_secgroup_rule_v2" "secgroup_node_rule_ipip_egress" {
+  direction         = "egress"
+  ethertype         = "IPv4"
+  protocol          = 94
+  #remote_group_id   = "${openstack_networking_secgroup_v2.secgroup_node.id}"
+  remote_ip_prefix  = "0.0.0.0/0"
+  security_group_id = "${openstack_networking_secgroup_v2.secgroup_node.id}"
 }
