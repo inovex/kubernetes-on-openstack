@@ -27,10 +27,14 @@ data "template_file" "master_init" {
     username            = "${var.username}"
     password            = "${var.password}"
     project_id          = "${var.project_id}"
-    subnet_id           = "${data.openstack_networking_network_v2.public.id}"
+    subnet_id           = "${openstack_networking_subnet_v2.cluster_subnet.id}"
     external_ip         = "${openstack_networking_floatingip_v2.public_ip.address}"
     kubernetes_version  = "${var.kubernetes_version}"
     pod_subnet          = "${var.pod_subnet}"
+    public_network_id   = "${data.openstack_networking_network_v2.public.id}"
+    auth_url            = "${var.auth_url}"
+    domain_name         = "${var.domain_name}"
+    node_security_group = "${openstack_networking_secgroup_v2.secgroup_node.id}"
   }
 }
 
@@ -59,7 +63,7 @@ resource "openstack_compute_instance_v2" "master" {
   }
 
   network {
-    name          = "${openstack_networking_network_v2.private.name}"
+    uuid          = "${openstack_networking_network_v2.private.id}"
   }
 }
 
@@ -71,8 +75,12 @@ data "template_file" "node_init" {
     username            = "${var.username}"
     password            = "${var.password}"
     project_id          = "${var.project_id}"
-    subnet_id           = "${data.openstack_networking_network_v2.public.id}" #TODO ->"${var.subnet_id}"
+    subnet_id           = "${openstack_networking_subnet_v2.cluster_subnet.id}"
     api_server          = "${openstack_compute_instance_v2.master.access_ip_v4}"
+    public_network_id   = "${data.openstack_networking_network_v2.public.id}"
+    auth_url            = "${var.auth_url}"
+    domain_name         = "${var.domain_name}"
+    node_security_group = "${openstack_networking_secgroup_v2.secgroup_node.id}"
   }
 }
 
@@ -102,6 +110,6 @@ resource "openstack_compute_instance_v2" "node" {
   }
 
   network {
-    name          = "${openstack_networking_network_v2.private.name}"
+    uuid          = "${openstack_networking_network_v2.private.id}"
   }
 }

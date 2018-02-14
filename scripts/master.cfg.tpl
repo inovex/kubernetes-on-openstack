@@ -7,12 +7,6 @@ datasource:
   timeout: 10
   retries: 5
 
-# set the locale to a given locale
-# default: en_US.UTF-8
-locale: en_US.UTF-8
-# render template default-locale.tmpl to locale_configfile
-locale_configfile: /etc/default/locale
-
 repo_update: true
 repo_upgrade: all
 package_upgrade: true
@@ -128,12 +122,13 @@ write_files:
         [Global]
         username="${username}"
         password="${password}"
-        auth-url="https://identity.fra.cloud.inovex.io/v3"
+        auth-url="${auth_url}"
         tenant-id="${project_id}"
-        domain-name="Default"
+        domain-name="${domain_name}"
 
         [LoadBalancer]
         subnet-id="${subnet_id}"
+        floating-network-id="${public_network_id}"
         create-monitor="true"
         monitor-delay="10s"
         monitor-timeout="2000s"

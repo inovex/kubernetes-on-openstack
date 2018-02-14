@@ -24,3 +24,4 @@ ssh ubuntu@<floating-ip>
 - [ ] OpenStack integration (testing)
 - [ ] Authentication over OpenStack (keystone)
 - [ ] Create a module
+- [ ] HA control plane (<https://kubernetes.io/docs/setup/independent/high-availability>)

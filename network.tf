@@ -4,45 +4,35 @@ resource "openstack_networking_network_v2" "private" {
   admin_state_up = "true"
 }
 
-resource "openstack_networking_subnet_v2" "subnet_private" {
-  name            = "subnet_${var.cluster_name}"
+resource "openstack_networking_subnet_v2" "cluster_subnet" {
+  name            = "${var.cluster_name}_subnet"
   network_id      = "${openstack_networking_network_v2.private.id}"
   cidr            = "172.16.0.0/16"
   ip_version      = 4
-  #dns_nameservers = ["8.8.8.8", "8.8.4.4"]
 }
 
 data "openstack_networking_network_v2" "public" {
   name = "public"
 }
-# Warning: openstack_networking_router_v2.private_router: "external_gateway": [DEPRECATED] use external_network_id instead
-resource "openstack_networking_router_v2" "private_router" {
+
+resource "openstack_networking_router_v2" "cluster_router" {
   name                = "${var.cluster_name}_router"
   admin_state_up      = "true"
   external_network_id = "${data.openstack_networking_network_v2.public.id}"
 }
 
-resource "openstack_networking_router_interface_v2" "private_router_interface" {
-  router_id = "${openstack_networking_router_v2.private_router.id}"
-  subnet_id = "${openstack_networking_subnet_v2.subnet_private.id}"
+resource "openstack_networking_router_interface_v2" "cluster_subnet_interface" {
+  router_id = "${openstack_networking_router_v2.cluster_router.id}"
+  subnet_id = "${openstack_networking_subnet_v2.cluster_subnet.id}"
 }
 
 resource "openstack_networking_floatingip_v2" "public_ip" {
   pool = "public"
 }
 
-resource "openstack_networking_floatingip_v2" "public_ip2" {
-  pool = "public"
-}
-
-resource "openstack_compute_floatingip_associate_v2" "jumphost" {
+resource "openstack_compute_floatingip_associate_v2" "master" {
   floating_ip = "${openstack_networking_floatingip_v2.public_ip.address}"
   instance_id = "${openstack_compute_instance_v2.master.id}"
-}
-
-resource "openstack_compute_floatingip_associate_v2" "node_pub_ip" {
-  floating_ip = "${openstack_networking_floatingip_v2.public_ip2.address}"
-  instance_id = "${element(openstack_compute_instance_v2.node.*.id, 0)}"
 }
 
 ## Security groupd for the Kubernetes master
@@ -94,7 +84,6 @@ resource "openstack_networking_secgroup_rule_v2" "secgroup_node_rule_kubelet" {
   security_group_id = "${openstack_networking_secgroup_v2.secgroup_node.id}"
 }
 
-
 resource "openstack_networking_secgroup_rule_v2" "secgroup_node_rule_heapster" {
   direction         = "ingress"
   ethertype         = "IPv4"
@@ -111,7 +100,26 @@ resource "openstack_networking_secgroup_rule_v2" "secgroup_node_rule_nodeport" {
   protocol          = "tcp"
   port_range_min    = 30000
   port_range_max    = 32767
-  #remote_group_id   = "${openstack_networking_secgroup_rule_v2.secgroup_master.id}" # <-- This should be the LB network
+  remote_group_id   = "${openstack_networking_secgroup_v2.secgroup_node.id}"
+  security_group_id = "${openstack_networking_secgroup_v2.secgroup_node.id}"
+}
+
+resource "openstack_networking_secgroup_rule_v2" "secgroup_node_rule_allow_http" {
+  direction         = "ingress"
+  ethertype         = "IPv4"
+  protocol          = "tcp"
+  port_range_min    = 80
+  port_range_max    = 80
+  remote_ip_prefix  = "0.0.0.0/0"
+  security_group_id = "${openstack_networking_secgroup_v2.secgroup_node.id}"
+}
+
+resource "openstack_networking_secgroup_rule_v2" "secgroup_node_rule_allow_https" {
+  direction         = "ingress"
+  ethertype         = "IPv4"
+  protocol          = "tcp"
+  port_range_min    = 443
+  port_range_max    = 443
   remote_ip_prefix  = "0.0.0.0/0"
   security_group_id = "${openstack_networking_secgroup_v2.secgroup_node.id}"
 }
