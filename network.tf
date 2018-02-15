@@ -15,6 +15,10 @@ data "openstack_networking_network_v2" "public" {
   name = "public"
 }
 
+data "openstack_networking_secgroup_v2" "default" {
+  name = "default"
+}
+
 resource "openstack_networking_router_v2" "cluster_router" {
   name                = "${var.cluster_name}_router"
   admin_state_up      = "true"
@@ -27,7 +31,7 @@ resource "openstack_networking_router_interface_v2" "cluster_subnet_interface" {
 }
 
 resource "openstack_networking_floatingip_v2" "public_ip" {
-  pool = "public"
+  pool = "${data.openstack_networking_network_v2.public.name}"
 }
 
 resource "openstack_compute_floatingip_associate_v2" "master" {
@@ -100,28 +104,28 @@ resource "openstack_networking_secgroup_rule_v2" "secgroup_node_rule_nodeport" {
   protocol          = "tcp"
   port_range_min    = 30000
   port_range_max    = 32767
-  remote_group_id   = "${openstack_networking_secgroup_v2.secgroup_node.id}"
+  remote_group_id   = "${data.openstack_networking_secgroup_v2.default.id}"
   security_group_id = "${openstack_networking_secgroup_v2.secgroup_node.id}"
 }
 
-resource "openstack_networking_secgroup_rule_v2" "secgroup_node_rule_allow_http" {
+resource "openstack_networking_secgroup_rule_v2" "secgroup_rule_allow_http" {
   direction         = "ingress"
   ethertype         = "IPv4"
   protocol          = "tcp"
   port_range_min    = 80
   port_range_max    = 80
   remote_ip_prefix  = "0.0.0.0/0"
-  security_group_id = "${openstack_networking_secgroup_v2.secgroup_node.id}"
+  security_group_id = "${data.openstack_networking_secgroup_v2.default.id}"
 }
 
-resource "openstack_networking_secgroup_rule_v2" "secgroup_node_rule_allow_https" {
+resource "openstack_networking_secgroup_rule_v2" "secgroup_rule_allow_https" {
   direction         = "ingress"
   ethertype         = "IPv4"
   protocol          = "tcp"
   port_range_min    = 443
   port_range_max    = 443
   remote_ip_prefix  = "0.0.0.0/0"
-  security_group_id = "${openstack_networking_secgroup_v2.secgroup_node.id}"
+  security_group_id = "${data.openstack_networking_secgroup_v2.default.id}"
 }
 
 resource "openstack_networking_secgroup_rule_v2" "secgroup_node_rule_allow_inside" {
