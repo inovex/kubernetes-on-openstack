@@ -158,6 +158,19 @@ write_files:
     path: /etc/kubernetes/kubeadm.yaml
     owner: root:root
     permissions: '0600'
+-   content: |
+        kind: StorageClass
+        apiVersion: storage.k8s.io/v1
+        metadata:
+          name: cinder-storage
+          annotations:
+            storageclass.kubernetes.io/is-default-class: "true"
+        provisioner: kubernetes.io/cinder
+        parameters:
+          fsType: ext4
+    path: /etc/kubernetes/storageclass.yaml
+    owner: root:root
+    permissions: '0600'
 
 packages:
   - kubelet
@@ -180,3 +193,4 @@ runcmd:
   - [ kubectl, apply, --kubeconfig=/etc/kubernetes/admin.conf, -f, "https://docs.projectcalico.org/v3.0/getting-started/kubernetes/installation/hosted/rbac-kdd.yaml" ]
   - [ kubectl, apply, --kubeconfig=/etc/kubernetes/admin.conf, -f, "https://docs.projectcalico.org/v3.0/getting-started/kubernetes/installation/hosted/kubernetes-datastore/calico-networking/1.7/calico.yaml" ]
   - [ kubectl, apply, --kubeconfig=/etc/kubernetes/admin.conf, -f, "https://raw.githubusercontent.com/kubernetes/dashboard/v1.8.2/src/deploy/recommended/kubernetes-dashboard.yaml" ]
+  - [ kubectl, apply, --kubeconfig=/etc/kubernetes/admin.conf, -f, "/etc/kubernetes/storageclass.yaml" ]
