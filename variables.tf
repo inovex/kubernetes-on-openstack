@@ -51,6 +51,11 @@ variable kubernetes_version {
     default = "v1.9.3"
 }
 
+variable cni_version {
+  type = "string"
+  default = "v0.6.0"
+}
+
 variable pod_subnet {
     type = "string"
     default = "192.168.0.0/16"
