@@ -44,8 +44,7 @@ To access the API server from external (as long as the Keystone auth doesn't wor
 
 ```bash
 scp ubuntu@<floating-ip>:/home/ubuntu/.kube/config ~/.kube/my_cluster_config
-# Adjust here the IP address of the server
-export KUBECONFIG= ~/.kube/my_cluster_config
+export KUBECONFIG=~/.kube/my_cluster_config
 kubectl get cs
 ```
 

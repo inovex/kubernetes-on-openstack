@@ -141,6 +141,9 @@ write_files:
         kind: MasterConfiguration
         kubernetesVersion: ${kubernetes_version}
         cloudProvider: openstack
+        api:
+          advertiseAddress: ${external_ip}
+
         apiServerCertSANs:
           - ${external_ip}
 
