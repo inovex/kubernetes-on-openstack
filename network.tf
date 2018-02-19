@@ -55,19 +55,19 @@ resource "openstack_networking_secgroup_rule_v2" "secgroup_master_rule_api" {
   security_group_id = "${openstack_networking_secgroup_v2.secgroup_master.id}"
 }
 
-resource "openstack_networking_secgroup_v2" "secgroup_node" {
-  name        = "secgroup_nodes_${var.cluster_name}"
-  description = "Allow network functionality for kubelet"
-}
-
-resource "openstack_networking_secgroup_rule_v2" "secgroup_node_rule_ssh" {
+resource "openstack_networking_secgroup_rule_v2" "secgroup_master_rule_ssh" {
   direction         = "ingress"
   ethertype         = "IPv4"
   protocol          = "tcp"
   port_range_min    = 22
   port_range_max    = 22
   remote_ip_prefix  = "0.0.0.0/0"
-  security_group_id = "${openstack_networking_secgroup_v2.secgroup_node.id}"
+  security_group_id = "${openstack_networking_secgroup_v2.secgroup_master.id}"
+}
+
+resource "openstack_networking_secgroup_v2" "secgroup_node" {
+  name        = "secgroup_nodes_${var.cluster_name}"
+  description = "Allow network functionality for kubelet"
 }
 
 resource "openstack_networking_secgroup_rule_v2" "secgroup_node_rule_icmp" {
@@ -98,6 +98,14 @@ resource "openstack_networking_secgroup_rule_v2" "secgroup_node_rule_heapster" {
   security_group_id = "${openstack_networking_secgroup_v2.secgroup_node.id}"
 }
 
+resource "openstack_networking_secgroup_rule_v2" "secgroup_node_rule_allow_inside" {
+  direction         = "ingress"
+  ethertype         = "IPv4"
+  protocol          = "null"
+  remote_group_id   = "${openstack_networking_secgroup_v2.secgroup_node.id}"
+  security_group_id = "${openstack_networking_secgroup_v2.secgroup_node.id}"
+}
+
 resource "openstack_networking_secgroup_rule_v2" "secgroup_node_rule_nodeport" {
   direction         = "ingress"
   ethertype         = "IPv4"
@@ -108,6 +116,7 @@ resource "openstack_networking_secgroup_rule_v2" "secgroup_node_rule_nodeport" {
   security_group_id = "${openstack_networking_secgroup_v2.secgroup_node.id}"
 }
 
+# Network rules for the loadbalancer
 resource "openstack_networking_secgroup_rule_v2" "secgroup_rule_allow_http" {
   direction         = "ingress"
   ethertype         = "IPv4"
@@ -128,10 +137,3 @@ resource "openstack_networking_secgroup_rule_v2" "secgroup_rule_allow_https" {
   security_group_id = "${data.openstack_networking_secgroup_v2.default.id}"
 }
 
-resource "openstack_networking_secgroup_rule_v2" "secgroup_node_rule_allow_inside" {
-  direction         = "ingress"
-  ethertype         = "IPv4"
-  protocol          = "null"
-  remote_group_id   = "${openstack_networking_secgroup_v2.secgroup_node.id}"
-  security_group_id = "${openstack_networking_secgroup_v2.secgroup_node.id}"
-}
