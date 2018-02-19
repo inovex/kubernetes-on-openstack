@@ -8,7 +8,7 @@ Create a `main.tf` with the following content (obviously set the variables to yo
 
 ```hcl
 module "my_cluster" {
-  source = "git::git@github.com:johscheuer/kubernetes-on-openstack.git?ref=v0.0.1"
+  source = "git::https://github.com/johscheuer/kubernetes-on-openstack.git?ref=v0.0.1"
 
   auth_url      = "auth_url"
   cluster_name  = "cluster_name"
