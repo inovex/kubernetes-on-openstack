@@ -55,6 +55,7 @@ kubectl get cs
 - [ ] LB for API server
 - [x] OpenStack integration (testing)
 - [ ] Authentication over OpenStack (keystone)
-- [ ] Create a module
+- [x] Create a module
 - [ ] HA control plane (<https://kubernetes.io/docs/setup/independent/high-availability>)
 - [ ] Add extra disks to master and worker
+- [ ] Use Clear Containers
