@@ -39,7 +39,7 @@ resource "openstack_compute_floatingip_associate_v2" "master" {
   instance_id = "${openstack_compute_instance_v2.master.id}"
 }
 
-## Security groupd for the Kubernetes master
+## Security groups for the Kubernetes master
 resource "openstack_networking_secgroup_v2" "secgroup_master" {
   name        = "secgroup_master_${var.cluster_name}"
   description = "Allow access to the API server"
@@ -77,6 +77,7 @@ resource "openstack_networking_secgroup_rule_v2" "secgroup_node_rule_icmp" {
   remote_ip_prefix  = "0.0.0.0/0"
   security_group_id = "${openstack_networking_secgroup_v2.secgroup_node.id}"
 }
+
 
 resource "openstack_networking_secgroup_rule_v2" "secgroup_node_rule_kubelet" {
   direction         = "ingress"

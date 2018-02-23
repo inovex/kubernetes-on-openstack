@@ -152,6 +152,14 @@ write_files:
           dnsDomain: "cluster.local"
           podSubnet: "${pod_subnet}"
 
+        kubeProxy:
+          config:
+            mode: ipvs
+            featureGates: SupportIPVSProxyMode=true
+
+        featureGates:
+          CoreDNS: true
+
         token: ${bootstrap_token}
 
         apiServerExtraArgs:
@@ -180,14 +188,16 @@ packages:
   - kubeadm
   - kubectl
   - jq
+  - ipvsadm
   - [docker-ce, 17.03.2~ce-0~ubuntu-xenial]
 
 # integrate: https://github.com/dims/openstack-cloud-controller-manager
 # --experimental-keystone-url= auth_url --> didn't work # test v3
 # --> https://github.com/coreos/dex/blob/master/Documentation/connectors/gitlab.md
 # TODO create extra dir with kubernetes addons
+# The addon deployment can be moved out once we have a stable endpoint
 runcmd:
-  - [ kubeadm, init, --config, /etc/kubernetes/kubeadm.yaml ]
+  - [ kubeadm, init, --config, /etc/kubernetes/kubeadm.yaml, --skip-token-print ]
   - [ mkdir, -p, /root/.kube ]
   - [ cp, -i, /etc/kubernetes/admin.conf, /root/.kube/config ]
   - [ mkdir, -p, /home/ubuntu/.kube ]

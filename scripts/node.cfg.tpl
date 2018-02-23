@@ -139,6 +139,7 @@ write_files:
 packages:
   - kubelet
   - kubeadm
+  - ipvsadm
   - [docker-ce, 17.03.2~ce-0~ubuntu-xenial]
 runcmd:
   - "until kubeadm join --token=${bootstrap_token} --discovery-token-unsafe-skip-ca-verification ${api_server}:6443; do sleep 5; done"
