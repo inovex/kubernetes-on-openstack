@@ -38,7 +38,7 @@ terraform apply
 
 The Kubernetes cluster will use Keystone authentication (over a WebHook). For more information have a look [here](https://github.com/dims/openstack-cloud-controller-manager/blob/master/docs/using-keystone-webhook-authenticator-and-authorizer.md). After running `terraform apply` there will be output how to authenticate against the newly created cluster. In order to actually authenticate with KeyStone you need to perform the following steps described [here](https://github.com/dims/openstack-cloud-controller-manager/blob/master/docs/using-keystone-webhook-authenticator-and-authorizer.md#k8s-kubectl-client-configuration). The `--insecure-skip-tls-verify=true` is needed because we use the auto-generated certificates of kubeadm. There are possible workarounds to remove the flag (e.g. fetch the ca from the Kubernetes master).
 
-Keep in mind: As a default all users in the project will have `cluster-admin` rights.
+Keep in mind: As a default all users in the (OpenStack) project will have `cluster-admin` rights.
 
 ### Deprecated
 
