@@ -113,9 +113,28 @@ write_files:
     permissions: '0644'
 -   content: |
         [Service]
-        # --cloud-provider=external
         Environment="KUBELET_EXTRA_ARGS=--cgroup-driver=systemd --cloud-provider=openstack --cloud-config=/etc/kubernetes/cloud-config"
     path: /etc/systemd/system/kubelet.service.d/20-kubeadm.conf
+    owner: root:root
+    permissions: '0644'
+-   content: |
+        apiVersion: v1
+        clusters:
+        - cluster:
+            insecure-skip-tls-verify: true
+            server: https://localhost:8443/webhook
+          name: webhook
+        contexts:
+        - context:
+            cluster: webhook
+            user: webhook
+          name: webhook
+        current-context: webhook
+        kind: Config
+        preferences: {}
+        users:
+        - name: webhook
+    path: /etc/kubernetes/pki/webhook.kubeconfig
     owner: root:root
     permissions: '0644'
 -   content: |
@@ -164,6 +183,8 @@ write_files:
 
         apiServerExtraArgs:
           cloud-config: /etc/kubernetes/cloud-config
+          authentication-token-webhook-config-file: "/etc/kubernetes/pki/webhook.kubeconfig"
+          external-hostname: "${external_ip}"
         controllerManagerExtraArgs:
           cloud-config: /etc/kubernetes/cloud-config
     path: /etc/kubernetes/kubeadm.yaml
@@ -182,7 +203,98 @@ write_files:
     path: /etc/kubernetes/storageclass.yaml
     owner: root:root
     permissions: '0600'
-
+-   content: |
+        kind: ClusterRoleBinding
+        apiVersion: rbac.authorization.k8s.io/v1
+        metadata:
+          name: cluster-admin-os-admin
+        subjects:
+        - kind: Group
+          name: ${project_id}
+          apiGroup: rbac.authorization.k8s.io
+        roleRef:
+          kind: ClusterRole
+          name: cluster-admin
+          apiGroup: rbac.authorization.k8s.io
+    path: /etc/kubernetes/rbac-default.yaml
+    owner: root:root
+    permissions: '0600'
+-   content: |
+        apiVersion: apps/v1
+        kind: DaemonSet
+        metadata:
+          name: k8s-keystone-auth
+          namespace: kube-system
+          labels:
+            k8s-app: k8s-keystone-auth
+        spec:
+          selector:
+            matchLabels:
+              k8s-app: k8s-keystone-auth
+          updateStrategy:
+            type: RollingUpdate
+          template:
+            metadata:
+              labels:
+                k8s-app: k8s-keystone-auth
+            spec:
+              hostNetwork: true
+              nodeSelector:
+                node-role.kubernetes.io/master: ""
+              tolerations:
+              - key: node.cloudprovider.kubernetes.io/uninitialized
+                value: "true"
+                effect: NoSchedule
+              - key: node-role.kubernetes.io/master
+                effect: NoSchedule
+              containers:
+                - name: k8s-keystone-auth
+                  image: johscheuer/k8s-keystone-auth:6d1ddef7-dirty
+                  args:
+                    - /bin/k8s-keystone-auth
+                    - --v=10
+                    - --tls-cert-file
+                    - /etc/kubernetes/pki/apiserver.crt
+                    - --tls-private-key-file
+                    - /etc/kubernetes/pki/apiserver.key
+                    - --keystone-policy-file
+                    - /etc/kubernetes/webhook/policy.json
+                    - --keystone-url=${auth_url}
+                  volumeMounts:
+                    - mountPath: /etc/kubernetes/pki
+                      name: k8s-certs
+                      readOnly: true
+                    - mountPath: /etc/kubernetes/webhook
+                      name: k8s-webhook
+                      readOnly: true
+                    - mountPath: /etc/ssl/certs
+                      name: ca-certs
+                      readOnly: true
+                  resources:
+                    requests:
+                      cpu: 200m
+                  ports:
+                    - containerPort: 8443
+                      hostPort: 8443
+                      name: https
+                      protocol: TCP
+              hostNetwork: true
+              volumes:
+              - hostPath:
+                  path: /etc/kubernetes/pki
+                  type: DirectoryOrCreate
+                name: k8s-certs
+              - hostPath:
+                  path: /etc/kubernetes/webhook
+                  type: DirectoryOrCreate
+                name: k8s-webhook
+              - hostPath:
+                  path: /etc/ssl/certs
+                  type: DirectoryOrCreate
+                name: ca-certs
+    path: /etc/kubernetes/keystone-webhook-ds.yaml
+    owner: root:root
+    permissions: '0600'
 packages:
   - kubelet
   - kubeadm
@@ -209,4 +321,5 @@ runcmd:
   - [ kubectl, apply, --kubeconfig=/etc/kubernetes/admin.conf, -f, "/etc/kubernetes/storageclass.yaml" ]
   - [ kubectl, apply, --kubeconfig=/etc/kubernetes/admin.conf, -f, "https://raw.githubusercontent.com/kubernetes/heapster/v1.5.1/deploy/kube-config/rbac/heapster-rbac.yaml" ]
   - [ kubectl, apply, --kubeconfig=/etc/kubernetes/admin.conf, -f, "https://raw.githubusercontent.com/kubernetes/heapster/v1.5.1/deploy/kube-config/standalone/heapster-controller.yaml" ]
-
+  - [ kubectl, apply, --kubeconfig=/etc/kubernetes/admin.conf, -f, "/etc/kubernetes/rbac-default.yaml" ]
+  - [ kubectl, apply, --kubeconfig=/etc/kubernetes/admin.conf, -f, "/etc/kubernetes/keystone-webhook-ds.yaml" ]
