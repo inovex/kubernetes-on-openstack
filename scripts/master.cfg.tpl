@@ -106,14 +106,15 @@ write_files:
 -   content: |
         {
           "exec-opts": ["native.cgroupdriver=systemd"],
-          "bip": "172.26.0.1/16"
+          "bip": "172.26.0.1/16",
+          "storage-driver": "overlay2"
         }
     path: /etc/docker/daemon.json
     owner: root:root
     permissions: '0644'
 -   content: |
         [Service]
-        Environment="KUBELET_EXTRA_ARGS=--cgroup-driver=systemd --cloud-provider=openstack --cloud-config=/etc/kubernetes/cloud-config"
+        Environment="KUBELET_EXTRA_ARGS=--cgroup-driver=systemd --cloud-provider=openstack --cloud-config=/etc/kubernetes/cloud-config --serialize-image-pulls=false"
     path: /etc/systemd/system/kubelet.service.d/20-kubeadm.conf
     owner: root:root
     permissions: '0644'
