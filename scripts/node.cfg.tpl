@@ -137,6 +137,7 @@ write_files:
     owner: root:root
     permissions: '0600'
 packages:
+  - nfs-common
   - kubelet
   - kubeadm
   - ipvsadm
