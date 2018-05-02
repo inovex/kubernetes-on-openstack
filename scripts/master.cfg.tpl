@@ -175,10 +175,10 @@ write_files:
         kubeProxy:
           config:
             mode: ipvs
-            featureGates: SupportIPVSProxyMode=true
 
         featureGates:
           CoreDNS: true
+          Auditing: true
 
         token: ${bootstrap_token}
 
