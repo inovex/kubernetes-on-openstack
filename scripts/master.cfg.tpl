@@ -1,5 +1,4 @@
 #cloud-config
-# vim /var/lib/cloud/instance/cloud-config.txt
 datasource:
  OpenStack:
   metadata_urls: ["http://169.254.169.254"]
@@ -114,7 +113,7 @@ write_files:
     permissions: '0644'
 -   content: |
         [Service]
-        Environment="KUBELET_EXTRA_ARGS=--cgroup-driver=systemd --cloud-provider=openstack --cloud-config=/etc/kubernetes/cloud-config --serialize-image-pulls=false"
+        Environment="KUBELET_EXTRA_ARGS=---cloud-provider=external --cloud-config=/etc/kubernetes/pki/cloud-config"
     path: /etc/systemd/system/kubelet.service.d/20-kubeadm.conf
     owner: root:root
     permissions: '0644'
@@ -153,41 +152,163 @@ write_files:
         monitor-delay="10s"
         monitor-timeout="2000s"
         monitor-max-retries="3"
-    path: /etc/kubernetes/cloud-config
+    path: /etc/kubernetes/pki/cloud-config
     owner: root:root
     permissions: '0600'
 -   content: |
-        apiVersion: kubeadm.k8s.io/v1alpha1
+        apiVersion: kubeadm.k8s.io/v1alpha2
         kind: MasterConfiguration
         kubernetesVersion: ${kubernetes_version}
-        cloudProvider: openstack
+        cloudProvider: external
         api:
           advertiseAddress: ${external_ip}
-
+          bindPort: 6443
+          controlPlaneEndpoint: ""
+        auditPolicy:
+          logDir: /var/log/kubernetes/audit
+          logMaxAge: 2
+          path: ""
         apiServerCertSANs:
           - ${external_ip}
-
+        bootstrapTokens:
+          - groups:
+            - system:bootstrappers:kubeadm:default-node-token
+            token: ${bootstrap_token}
+            ttl: 24h0m0s
+            usages:
+            - signing
+            - authentication
+            certificatesDir: /etc/kubernetes/pki
+            clusterName: kubernetes
+            etcd:
+              local:
+                dataDir: /var/lib/etcd
+                image: ""
+            imageRepository: k8s.gcr.io
+            kubeProxy:
+              config:
+                bindAddress: 0.0.0.0
+                clientConnection:
+                  acceptContentTypes: ""
+                  burst: 10
+                  contentType: application/vnd.kubernetes.protobuf
+                  kubeconfig: /var/lib/kube-proxy/kubeconfig.conf
+                  qps: 5
+                clusterCIDR: ""
+                configSyncPeriod: 15m0s
+                conntrack:
+                  max: null
+                  maxPerCore: 32768
+                  min: 131072
+                  tcpCloseWaitTimeout: 1h0m0s
+                  tcpEstablishedTimeout: 24h0m0s
+                enableProfiling: false
+                healthzBindAddress: 0.0.0.0:10256
+                hostnameOverride: ""
+                iptables:
+                  masqueradeAll: false
+                  masqueradeBit: 14
+                  minSyncPeriod: 0s
+                  syncPeriod: 30s
+                ipvs:
+                  ExcludeCIDRs: null
+                  minSyncPeriod: 0s
+                  scheduler: ""
+                  syncPeriod: 30s
+                metricsBindAddress: 127.0.0.1:10249
+                mode: "ipvs"
+                nodePortAddresses: null
+                oomScoreAdj: -999
+                portRange: ""
+                resourceContainer: /kube-proxy
+                udpIdleTimeout: 250ms
+        kubeletConfiguration:
+          baseConfig:
+            address: 0.0.0.0
+            authentication:
+              anonymous:
+                enabled: false
+              webhook:
+                cacheTTL: 2m0s
+                enabled: true
+              x509:
+                clientCAFile: /etc/kubernetes/pki/ca.crt
+            authorization:
+              mode: Webhook
+              webhook:
+                cacheAuthorizedTTL: 5m0s
+                cacheUnauthorizedTTL: 30s
+            cgroupDriver: systemd
+            cgroupsPerQOS: true
+            clusterDNS:
+            - 10.96.0.10
+            clusterDomain: cluster.local
+            containerLogMaxFiles: 5
+            containerLogMaxSize: 10Mi
+            contentType: application/vnd.kubernetes.protobuf
+            cpuCFSQuota: true
+            cpuManagerPolicy: none
+            cpuManagerReconcilePeriod: 10s
+            enableControllerAttachDetach: true
+            enableDebuggingHandlers: true
+            enforceNodeAllocatable:
+            - pods
+            eventBurst: 10
+            eventRecordQPS: 5
+            evictionHard:
+              imagefs.available: 15%
+              memory.available: 100Mi
+              nodefs.available: 10%
+              nodefs.inodesFree: 5%
+            evictionPressureTransitionPeriod: 5m0s
+            failSwapOn: true
+            fileCheckFrequency: 20s
+            hairpinMode: promiscuous-bridge
+            healthzBindAddress: 127.0.0.1
+            healthzPort: 10248
+            httpCheckFrequency: 20s
+            imageGCHighThresholdPercent: 85
+            imageGCLowThresholdPercent: 80
+            imageMinimumGCAge: 2m0s
+            iptablesDropBit: 15
+            iptablesMasqueradeBit: 14
+            kubeAPIBurst: 10
+            kubeAPIQPS: 5
+            makeIPTablesUtilChains: true
+            maxOpenFiles: 1000000
+            maxPods: 110
+            nodeStatusUpdateFrequency: 10s
+            oomScoreAdj: -999
+            podPidsLimit: -1
+            port: 10250
+            registryBurst: 10
+            registryPullQPS: 5
+            resolvConf: /etc/resolv.conf
+            rotateCertificates: true
+            runtimeRequestTimeout: 2m0s
+            serializeImagePulls: false
+            staticPodPath: /etc/kubernetes/manifests
+            streamingConnectionIdleTimeout: 4h0m0s
+            syncFrequency: 1m0s
+            volumeStatsAggPeriod: 1m0s
         networking:
           serviceSubnet: "10.96.0.0/16"
           dnsDomain: "cluster.local"
           podSubnet: "${pod_subnet}"
-
-        kubeProxy:
-          config:
-            mode: ipvs
-
+        nodeRegistration:
+          criSocket: /var/run/dockershim.sock
+          taints:
+          - effect: NoSchedule
+            key: node-role.kubernetes.io/master
+        unifiedControlPlaneImage: ""
         featureGates:
-          CoreDNS: true
           Auditing: true
-
-        token: ${bootstrap_token}
-
         apiServerExtraArgs:
-          cloud-config: /etc/kubernetes/cloud-config
+          cloud-config: /etc/kubernetes/pki/cloud-config
           authentication-token-webhook-config-file: "/etc/kubernetes/pki/webhook.kubeconfig"
           external-hostname: "${external_ip}"
         controllerManagerExtraArgs:
-          cloud-config: /etc/kubernetes/cloud-config
+          cloud-config: /etc/kubernetes/pki/cloud-config
     path: /etc/kubernetes/kubeadm.yaml
     owner: root:root
     permissions: '0600'
@@ -305,10 +426,10 @@ packages:
   - ipvsadm
   - [docker-ce, 17.03.2~ce-0~ubuntu-xenial]
 
-# integrate: https://github.com/dims/openstack-cloud-controller-manager
-# --experimental-keystone-url= auth_url --> didn't work # test v3
-# --> https://github.com/coreos/dex/blob/master/Documentation/connectors/gitlab.md
-# TODO create extra dir with kubernetes addons
+# Integrate: https://github.com/dims/openstack-cloud-controller-manager
+# https://github.com/kubernetes/cloud-provider-openstack/tree/master/manifests/controller-manager
+# https://github.com/kubernetes/cloud-provider-openstack/blob/master/docs/using-controller-manager-with-kubeadm.md
+# TODO: create extra dir with kubernetes addons --> remove everythin except OpenStack integration
 # The addon deployment can be moved out once we have a stable endpoint
 runcmd:
   - [ kubeadm, init, --config, /etc/kubernetes/kubeadm.yaml, --skip-token-print ]
@@ -317,11 +438,11 @@ runcmd:
   - [ mkdir, -p, /home/ubuntu/.kube ]
   - [ cp, -i, /etc/kubernetes/admin.conf, /home/ubuntu/.kube/config ]
   - [ chown, ubuntu, /home/ubuntu/.kube/config ]
-  - [ kubectl, apply, --kubeconfig=/etc/kubernetes/admin.conf, -f, "https://docs.projectcalico.org/v3.0/getting-started/kubernetes/installation/hosted/rbac-kdd.yaml" ]
-  - [ kubectl, apply, --kubeconfig=/etc/kubernetes/admin.conf, -f, "https://docs.projectcalico.org/v3.0/getting-started/kubernetes/installation/hosted/kubernetes-datastore/calico-networking/1.7/calico.yaml" ]
-  - [ kubectl, apply, --kubeconfig=/etc/kubernetes/admin.conf, -f, "https://raw.githubusercontent.com/kubernetes/dashboard/v1.8.2/src/deploy/recommended/kubernetes-dashboard.yaml" ]
+  - [ kubectl, apply, --kubeconfig=/etc/kubernetes/admin.conf, -f, "https://docs.projectcalico.org/v3.1/getting-started/kubernetes/installation/hosted/rbac-kdd.yaml" ]
+  - [ kubectl, apply, --kubeconfig=/etc/kubernetes/admin.conf, -f, "https://docs.projectcalico.org/v3.1/getting-started/kubernetes/installation/hosted/kubernetes-datastore/calico-networking/1.7/calico.yaml" ]
+  - [ kubectl, apply, --kubeconfig=/etc/kubernetes/admin.conf, -f, "https://raw.githubusercontent.com/kubernetes/dashboard/v1.8.3/src/deploy/recommended/kubernetes-dashboard.yaml" ]
   - [ kubectl, apply, --kubeconfig=/etc/kubernetes/admin.conf, -f, "/etc/kubernetes/storageclass.yaml" ]
-  - [ kubectl, apply, --kubeconfig=/etc/kubernetes/admin.conf, -f, "https://raw.githubusercontent.com/kubernetes/heapster/v1.5.1/deploy/kube-config/rbac/heapster-rbac.yaml" ]
-  - [ kubectl, apply, --kubeconfig=/etc/kubernetes/admin.conf, -f, "https://raw.githubusercontent.com/kubernetes/heapster/v1.5.1/deploy/kube-config/standalone/heapster-controller.yaml" ]
+  - [ kubectl, apply, --kubeconfig=/etc/kubernetes/admin.conf, -f, "https://raw.githubusercontent.com/kubernetes/heapster/v1.5.3/deploy/kube-config/rbac/heapster-rbac.yaml" ]
+  - [ kubectl, apply, --kubeconfig=/etc/kubernetes/admin.conf, -f, "https://raw.githubusercontent.com/kubernetes/heapster/v1.5.3/deploy/kube-config/standalone/heapster-controller.yaml" ]
   - [ kubectl, apply, --kubeconfig=/etc/kubernetes/admin.conf, -f, "/etc/kubernetes/rbac-default.yaml" ]
   - [ kubectl, apply, --kubeconfig=/etc/kubernetes/admin.conf, -f, "/etc/kubernetes/keystone-webhook-ds.yaml" ]
