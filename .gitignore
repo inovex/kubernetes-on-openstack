@@ -5,3 +5,6 @@ terraform.tfstate.backup
 .terraform/
 .terraform.tfstate.lock.info
 scripts/bootstrap_master.sh
+bin
+kubeconfig
+

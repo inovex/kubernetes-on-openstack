@@ -9,6 +9,10 @@ provider "openstack" {
   region      = "${var.region}"
 }
 
+provider "local" {
+  version = "~> v1.1.0"
+}
+
 resource "openstack_compute_keypair_v2" "basic_keypair" {
   name       = "${var.cluster_name}_keypair"
   public_key = "${file(var.ssh_pub_key)}"

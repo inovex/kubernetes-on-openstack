@@ -43,12 +43,12 @@ variable cluster_name {
 
 variable node_count {
     type = "string"
-    default = 3
+    default = 1
 }
 
 variable kubernetes_version {
     type = "string"
-    default = "v1.9.3"
+    default = "v1.11.0"
 }
 
 variable pod_subnet {
