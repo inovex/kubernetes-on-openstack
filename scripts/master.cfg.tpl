@@ -322,7 +322,7 @@ write_files:
         provisioner: kubernetes.io/cinder
         parameters:
           fsType: ext4
-    path: /etc/kubernetes/storageclass.yaml
+    path: /etc/kubernetes/addons/storageclass.yaml
     owner: root:root
     permissions: '0600'
 -   content: |
@@ -338,7 +338,7 @@ write_files:
           kind: ClusterRole
           name: cluster-admin
           apiGroup: rbac.authorization.k8s.io
-    path: /etc/kubernetes/rbac-default.yaml
+    path: /etc/kubernetes/addons/rbac-default.yaml
     owner: root:root
     permissions: '0600'
 -   content: |
@@ -371,7 +371,7 @@ write_files:
                 effect: NoSchedule
               containers:
                 - name: k8s-keystone-auth
-                  image: johscheuer/k8s-keystone-auth:6d1ddef7-dirty
+                  image: docker.io/k8scloudprovider/k8s-keystone-auth:v0.1.0
                   args:
                     - /bin/k8s-keystone-auth
                     - --v=10
@@ -414,7 +414,156 @@ write_files:
                   path: /etc/ssl/certs
                   type: DirectoryOrCreate
                 name: ca-certs
-    path: /etc/kubernetes/keystone-webhook-ds.yaml
+    path: /etc/kubernetes/addons/keystone-webhook-ds.yaml
+    owner: root:root
+    permissions: '0600'
+-   content: |
+        ---
+        apiVersion: v1
+        kind: ServiceAccount
+        metadata:
+          name: cloud-controller-manager
+          namespace: kube-system
+        ---
+        apiVersion: rbac.authorization.k8s.io/v1
+        kind: ClusterRoleBinding
+        metadata:
+          name: cloud-controller-manager
+        roleRef:
+          apiGroup: rbac.authorization.k8s.io
+          kind: ClusterRole
+          name: system:kube-controller-manager
+        subjects:
+        - kind: ServiceAccount
+          name: cloud-controller-manager
+          namespace: kube-system
+        ---
+        apiVersion: v1
+        kind: ServiceAccount
+        metadata:
+          name: cloud-node-controller
+          namespace: kube-system
+        ---
+        apiVersion: rbac.authorization.k8s.io/v1
+        kind: ClusterRoleBinding
+        metadata:
+          name: cloud-node-controller
+        roleRef:
+          apiGroup: rbac.authorization.k8s.io
+          kind: ClusterRole
+          name: system:controller:node-controller
+        subjects:
+        - kind: ServiceAccount
+          name: cloud-node-controller
+          namespace: kube-system
+        ---
+        apiVersion: rbac.authorization.k8s.io/v1
+        kind: ClusterRole
+        metadata:
+          name: system:pvl-controller
+        rules:
+        - apiGroups:
+          - ""
+          resources:
+          - persistentvolumes
+          verbs:
+          - get
+          - list
+          - watch
+        - apiGroups:
+          - ""
+          resources:
+          - events
+          verbs:
+          - create
+          - patch
+          - update
+        ---
+        apiVersion: rbac.authorization.k8s.io/v1
+        kind: ClusterRoleBinding
+        metadata:
+          name: system:pvl-controller
+        roleRef:
+          apiGroup: rbac.authorization.k8s.io
+          kind: ClusterRole
+          name: system:pvl-controller
+        subjects:
+        - kind: ServiceAccount
+          name: pvl-controller
+          namespace: kube-system
+        ---
+        apiVersion: apps/v1
+        kind: DaemonSet
+        metadata:
+          name: openstack-cloud-controller-manager
+          namespace: kube-system
+          labels:
+            k8s-app: openstack-cloud-controller-manager
+        spec:
+          selector:
+            matchLabels:
+              k8s-app: openstack-cloud-controller-manager
+          updateStrategy:
+            type: RollingUpdate
+          template:
+            metadata:
+              labels:
+                k8s-app: openstack-cloud-controller-manager
+            spec:
+              nodeSelector:
+                node-role.kubernetes.io/master: ""
+              securityContext:
+                runAsUser: 1001
+              tolerations:
+              - key: node.cloudprovider.kubernetes.io/uninitialized
+                value: "true"
+                effect: NoSchedule
+              - key: node-role.kubernetes.io/master
+                effect: NoSchedule
+              serviceAccountName: cloud-controller-manager
+              containers:
+                - name: openstack-cloud-controller-manager
+                  image: docker.io/k8scloudprovider/openstack-cloud-controller-manager:v0.1.0
+                  args:
+                    - /bin/openstack-cloud-controller-manager
+                    - --v=2
+                    - --cloud-config=/etc/cloud/cloud-config
+                    - --cloud-provider=openstack
+                    - --use-service-account-credentials=true
+                    - --address=127.0.0.1
+                  volumeMounts:
+                    - mountPath: /etc/kubernetes/pki
+                      name: k8s-certs
+                      readOnly: true
+                    - mountPath: /etc/ssl/certs
+                      name: ca-certs
+                      readOnly: true
+                    - mountPath: /etc/cloud
+                      name: cloud-config-volume
+                      readOnly: true
+                    - mountPath: /usr/libexec/kubernetes/kubelet-plugins/volume/exec
+                      name: flexvolume-dir
+                  resources:
+                    requests:
+                      cpu: 200m
+              hostNetwork: true
+              volumes:
+              - hostPath:
+                  path: /usr/libexec/kubernetes/kubelet-plugins/volume/exec
+                  type: DirectoryOrCreate
+                name: flexvolume-dir
+              - hostPath:
+                  path: /etc/kubernetes/pki
+                  type: DirectoryOrCreate
+                name: k8s-certs
+              - hostPath:
+                  path: /etc/ssl/certs
+                  type: DirectoryOrCreate
+                name: ca-certs
+              - name: cloud-config-volume
+                configMap:
+                  name: cloud-config
+    path: /etc/kubernetes/addons/openstack-ccm.yaml
     owner: root:root
     permissions: '0600'
 packages:
@@ -445,9 +594,7 @@ runcmd:
   - [ kubectl, --kubeconfig=/etc/kubernetes/admin.conf, apply, -f, "https://docs.projectcalico.org/v3.1/getting-started/kubernetes/installation/hosted/rbac-kdd.yaml" ]
   - [ kubectl, --kubeconfig=/etc/kubernetes/admin.conf, apply, -f, "https://docs.projectcalico.org/v3.1/getting-started/kubernetes/installation/hosted/kubernetes-datastore/calico-networking/1.7/calico.yaml" ]
   - [ kubectl, --kubeconfig=/etc/kubernetes/admin.conf, apply, -f, "https://raw.githubusercontent.com/kubernetes/dashboard/v1.8.3/src/deploy/recommended/kubernetes-dashboard.yaml" ]
-  - [ kubectl, --kubeconfig=/etc/kubernetes/admin.conf, apply, -f, "/etc/kubernetes/storageclass.yaml" ]
   - [ kubectl, --kubeconfig=/etc/kubernetes/admin.conf, apply, -f, "https://raw.githubusercontent.com/kubernetes/heapster/v1.5.3/deploy/kube-config/rbac/heapster-rbac.yaml" ]
   - [ kubectl, --kubeconfig=/etc/kubernetes/admin.conf, apply, -f, "https://raw.githubusercontent.com/kubernetes/heapster/v1.5.3/deploy/kube-config/standalone/heapster-controller.yaml" ]
-  - [ kubectl, --kubeconfig=/etc/kubernetes/admin.conf, apply, -f, "/etc/kubernetes/rbac-default.yaml" ]
-  - [ kubectl, --kubeconfig=/etc/kubernetes/admin.conf, apply, -f, "/etc/kubernetes/keystone-webhook-ds.yaml" ]
   - [ kubectl, --kubeconfig=/etc/kubernetes/admin.conf, create, configmap, cloud-config, "--from-file=/etc/kubernetes/pki/cloud-config", "--namespace=kube-system" ]
+  - [ kubectl, --kubeconfig=/etc/kubernetes/admin.conf, apply, -f, "/etc/kubernetes/addons" ]

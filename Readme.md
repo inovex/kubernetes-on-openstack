@@ -44,13 +44,14 @@ Keep in mind: As a default all users in the (OpenStack) project will have `clust
 
 ```bash
 VERSION=v0.1.0
-curl -sLO https://github.com/kubernetes/cloud-provider-openstack/releases/download/${VERSION}/cloud-provider-openstack-${VERSION}-darwin-amd64.tar.gz
-tar xfz cloud-provider-openstack-${VERSION}-darwin-amd64.tar.gz
-rm cloud-provider-openstack-${VERSION}-darwin-amd64.tar.gz
+OS=$(uname | tr '[:upper:]' '[:lower:]')
+curl -sLO https://github.com/kubernetes/cloud-provider-openstack/releases/download/${VERSION}/cloud-provider-openstack-${VERSION}-${OS}-amd64.tar.gz
+tar xfz cloud-provider-openstack-${VERSION}-${OS}-amd64.tar.gz
+rm cloud-provider-openstack-${VERSION}-${OS}-amd64.tar.gz
 
 mkdir -p ${HOME}/.kube/bin
-cp darwin-amd64/client-keystone-auth $(pwd)/bin/
-rm -rf darwin-amd64
+cp ${OS}-amd64/client-keystone-auth $(pwd)/bin/
+rm -rf ${OS}-amd64
 ```
 
 Now you can use the kubeconfig with `kubectl --kubeconfig kubeconfig get nodes` or set `export KUBECONFIG="$(pwd)/kubeconfig"` to interact with the cluster.
