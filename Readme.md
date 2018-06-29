@@ -58,7 +58,7 @@ Now you can use the kubeconfig with `kubectl --kubeconfig kubeconfig get nodes` 
 
 ## Deploy the OpenStack Cloud provider
 
-In this step we deploy the [cloud-provider-openstack](https://github.com/kubernetes/cloud-provider-openstack) which allows us to create OpenStack LoadBalancer and Cinder Volumes as needed.
+**This step is done automatically** In this step we deploy the [cloud-provider-openstack](https://github.com/kubernetes/cloud-provider-openstack) which allows us to create OpenStack LoadBalancer and Cinder Volumes as needed.
 
 ```bash
 kubectl apply -f manifests/openstack-ccm.yml
