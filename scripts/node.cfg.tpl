@@ -143,4 +143,8 @@ packages:
   - ipvsadm
   - [docker-ce, 17.03.2~ce-0~ubuntu-xenial]
 runcmd:
+  - [ modprobe, ip_vs_rr ]
+  - [ modprobe, ip_vs_wrr ]
+  - [ modprobe, ip_vs_sh ]
+  - [ modprobe, ip_vs ]
   - "until kubeadm join --token=${bootstrap_token} --discovery-token-unsafe-skip-ca-verification ${api_server}:6443; do sleep 5; done"

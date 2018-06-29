@@ -2,11 +2,21 @@ output "master_ip" {
   value = "ssh ubuntu@${openstack_networking_floatingip_v2.public_ip.address}"
 }
 
-output "login" {
-  value = <<login
-kubectl config set-cluster --insecure-skip-tls-verify=true --server='https://${openstack_networking_floatingip_v2.public_ip.address}:6443' ${var.cluster_name}
-kubectl config set-credentials ${var.username} --auth-provider=openstack
-kubectl config set-context --cluster=${var.cluster_name} --user=${var.username}  ${var.username}
-kubectl config use-context ${var.username}
-    login
+data "template_file" "kubeconfig" {
+  template = "${file("${path.module}/templates/kubeconfig.tpl")}"
+
+  vars {
+    username          = "${var.username}"
+    password          = "${var.password}"
+    auth_url          = "${var.auth_url}"
+    domain_name       = "${var.domain_name}"
+    api_server_url    = "https://${openstack_networking_floatingip_v2.public_ip.address}:6443"
+    cluster_name      = "${var.cluster_name}"
+    auth_plugin       = "${pathexpand("./bin/client-keystone-auth")}"
+  }
+}
+
+resource "local_file" "kubeconfig" {
+    content     = "${data.template_file.kubeconfig.rendered}"
+    filename    = "${path.module}/kubeconfig"
 }
