@@ -81,4 +81,4 @@ kubectl expose deployment nginx --port=80 --type=LoadBalancer
 - [x] Create a module
 - [ ] HA control plane (<https://kubernetes.io/docs/setup/independent/high-availability>)
 - [ ] Add extra disks to master and worker
-- [ ] Use Clear Containers
+- [X] Use [containerd](https://containerd.io)
