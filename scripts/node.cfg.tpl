@@ -1,5 +1,4 @@
 #cloud-config
-# vim /var/lib/cloud/instance/cloud-config.txt
 datasource:
  OpenStack:
   metadata_urls: ["http://169.254.169.254"]
@@ -39,7 +38,7 @@ apt:
 write_files:
 -   content: |
         [Service]
-        Environment="KUBELET_EXTRA_ARGS=--cloud-provider=openstack --cloud-config=/etc/kubernetes/cloud-config --node-labels=node-role.kubernetes.io/node="
+        Environment="KUBELET_EXTRA_ARGS=--cloud-provider=external --cloud-config=/etc/kubernetes/pki/cloud-config --node-labels=node-role.kubernetes.io/node= --container-runtime=remote --container-runtime-endpoint=unix:///run/containerd/containerd.sock"
     path: /etc/systemd/system/kubelet.service.d/20-kubeadm.conf
     owner: root:root
     permissions: '0644'
@@ -58,7 +57,7 @@ write_files:
         monitor-delay="10s"
         monitor-timeout="2000s"
         monitor-max-retries="3"
-    path: /etc/kubernetes/cloud-config
+    path: /etc/kubernetes/pki/cloud-config
     owner: root:root
     permissions: '0600'
 packages:
@@ -86,6 +85,7 @@ runcmd:
   - [ modprobe, ip_vs_sh ]
   - [ modprobe, ip_vs ]
   - [ modprobe, br_netfilter ]
+  - [ modprobe, nf_conntrack_ipv4 ]
   - "echo '1' > /proc/sys/net/ipv4/ip_forward"
   - "echo '1' > /proc/sys/net/bridge/bridge-nf-call-iptables"
-  - "until kubeadm join --token=${bootstrap_token} --discovery-token-unsafe-skip-ca-verification ${api_server}:6443; do sleep 5; done"
+  - "until kubeadm join --token=${bootstrap_token} --cri-socket=/run/containerd/containerd.sock --discovery-token-unsafe-skip-ca-verification ${api_server}:6443; do sleep 5; done"

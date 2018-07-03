@@ -165,6 +165,7 @@ write_files:
                 cacheUnauthorizedTTL: 30s
             cgroupDriver: systemd
             cgroupsPerQOS: true
+            cgroupRoot: "/"
             clusterDNS:
             - 10.96.0.10
             clusterDomain: cluster.local
@@ -523,6 +524,7 @@ runcmd:
   - [ modprobe, ip_vs_sh ]
   - [ modprobe, ip_vs ]
   - [ modprobe, br_netfilter ]
+  - [ modprobe, nf_conntrack_ipv4 ]
   - "echo '1' > /proc/sys/net/ipv4/ip_forward"
   - "echo '1' > /proc/sys/net/bridge/bridge-nf-call-iptables"
   - [ kubeadm, init, --config, /etc/kubernetes/kubeadm.yaml, --skip-token-print ]
