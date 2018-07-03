@@ -61,3 +61,7 @@ variable bootstrap_token {
     type = "string"
     default = ""
 }
+
+variable containerd_version {
+  type = "string"
+}

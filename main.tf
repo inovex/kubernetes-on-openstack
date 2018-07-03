@@ -39,6 +39,7 @@ data "template_file" "master_init" {
     auth_url            = "${var.auth_url}"
     domain_name         = "${var.domain_name}"
     node_security_group = "${openstack_networking_secgroup_v2.secgroup_node.id}"
+    containerd_version  = "${var.containerd_version}"
   }
 }
 
@@ -54,7 +55,7 @@ data "template_cloudinit_config" "master_config" {
 }
 
 resource "openstack_compute_instance_v2" "master" {
-  name            = "${var.cluster_name}-kube-master"
+  name            = "${var.cluster_name}-master"
   image_id        = "${data.openstack_images_image_v2.ubuntu.id}"
   flavor_name     = "${var.flavor}"
   key_pair        = "${openstack_compute_keypair_v2.basic_keypair.id}"
@@ -85,6 +86,7 @@ data "template_file" "node_init" {
     auth_url            = "${var.auth_url}"
     domain_name         = "${var.domain_name}"
     node_security_group = "${openstack_networking_secgroup_v2.secgroup_node.id}"
+    containerd_version  = "${var.containerd_version}"
   }
 }
 
@@ -101,7 +103,7 @@ data "template_cloudinit_config" "node_config" {
 
 resource "openstack_compute_instance_v2" "node" {
   count           = "${var.node_count}"
-  name            = "${var.cluster_name}-kube-node-${count.index}"
+  name            = "${var.cluster_name}-node-${count.index}"
   image_id        = "${data.openstack_images_image_v2.ubuntu.id}"
   flavor_name     = "${var.flavor}"
   key_pair        = "${openstack_compute_keypair_v2.basic_keypair.id}"
