@@ -525,7 +525,7 @@ runcmd:
   - [ modprobe, br_netfilter ]
   - "echo '1' > /proc/sys/net/ipv4/ip_forward"
   - "echo '1' > /proc/sys/net/bridge/bridge-nf-call-iptables"
-  - [ kubeadm, init, --config, /etc/kubernetes/kubeadm.yaml, --skip-token-print, --skip-preflight-checks ]
+  - [ kubeadm, init, --config, /etc/kubernetes/kubeadm.yaml, --skip-token-print ]
   - [ mkdir, -p, /root/.kube ]
   - [ cp, -i, /etc/kubernetes/admin.conf, /root/.kube/config ]
   - [ mkdir, -p, /home/ubuntu/.kube ]
