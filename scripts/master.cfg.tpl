@@ -43,12 +43,6 @@ write_files:
     owner: root:root
     permissions: '0644'
 -   content: |
-        [Service]
-        Environment="KUBELET_EXTRA_ARGS=---cloud-provider=external --cloud-config=/etc/kubernetes/pki/cloud-config --container-runtime=remote --container-runtime-endpoint=unix:///run/containerd/containerd.sock"
-    path: /etc/systemd/system/kubelet.service.d/20-kubeadm.conf
-    owner: root:root
-    permissions: '0644'
--   content: |
         apiVersion: v1
         clusters:
         - cluster:
