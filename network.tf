@@ -5,10 +5,10 @@ resource "openstack_networking_network_v2" "private" {
 }
 
 resource "openstack_networking_subnet_v2" "cluster_subnet" {
-  name            = "${var.cluster_name}_subnet"
-  network_id      = "${openstack_networking_network_v2.private.id}"
-  cidr            = "172.16.0.0/16"
-  ip_version      = 4
+  name       = "${var.cluster_name}_subnet"
+  network_id = "${openstack_networking_network_v2.private.id}"
+  cidr       = "172.16.0.0/16"
+  ip_version = 4
 }
 
 data "openstack_networking_network_v2" "public" {
@@ -77,7 +77,6 @@ resource "openstack_networking_secgroup_rule_v2" "secgroup_node_rule_icmp" {
   remote_ip_prefix  = "0.0.0.0/0"
   security_group_id = "${openstack_networking_secgroup_v2.secgroup_node.id}"
 }
-
 
 resource "openstack_networking_secgroup_rule_v2" "secgroup_node_rule_kubelet" {
   direction         = "ingress"

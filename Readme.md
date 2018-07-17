@@ -10,13 +10,20 @@ Create a `main.tf` with the following content (obviously set the variables to yo
 module "my_cluster" {
   source = "git::https://github.com/johscheuer/kubernetes-on-openstack.git?ref=v0.0.2"
 
-  auth_url      = "auth_url"
-  cluster_name  = "cluster_name"
-  username      = "username"
-  password      = "password"
-  domain_name   = "domain_name"
-  project_id    = "project_id"
-  image_name    = "image_name"
+  auth_url          = "auth_url"
+  cluster_name      = "cluster_name"
+  username          = "username"
+  password          = "password"
+  domain_name       = "domain_name"
+  tenant_name       = "tenant_name"
+  user_domain_name  = "user_domain_name"
+  project_id        = "project_id"
+  image_name        = "image_name"
+}
+
+resource "local_file" "kubeconfig" {
+  content  = "${module.my_cluster.kubeconfig}"
+  filename = "${path.module}/kubeconfig"
 }
 ```
 
@@ -49,7 +56,6 @@ curl -sLO https://github.com/kubernetes/cloud-provider-openstack/releases/downlo
 tar xfz cloud-provider-openstack-${VERSION}-${OS}-amd64.tar.gz
 rm cloud-provider-openstack-${VERSION}-${OS}-amd64.tar.gz
 
-mkdir -p ${HOME}/.kube/bin
 cp ${OS}-amd64/client-keystone-auth $(pwd)/bin/
 rm -rf ${OS}-amd64
 ```
@@ -73,7 +79,7 @@ kubectl expose deployment nginx --port=80 --type=LoadBalancer
 
 # TODO
 
-- [x] Docs
+- [x] Adjust Docs (for module + kubeconfig)
 - [ ] image (architecture)
 - [ ] LB for API server
 - [x] OpenStack integration (testing)
@@ -82,3 +88,4 @@ kubectl expose deployment nginx --port=80 --type=LoadBalancer
 - [ ] HA control plane (<https://kubernetes.io/docs/setup/independent/high-availability>)
 - [ ] Add extra disks to master and worker
 - [X] Use [containerd](https://containerd.io)
+- [ ] Use Master as Jumphost

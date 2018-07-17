@@ -2,11 +2,13 @@
 provider "openstack" {
   version = "~> v1.6.0"
 
-  user_name   = "${var.username}"
-  domain_name = "${var.domain_name}"
-  password    = "${var.password}"
-  auth_url    = "${var.auth_url}"
-  region      = "${var.region}"
+  user_name        = "${var.username}"
+  domain_name      = "${var.domain_name}"
+  tenant_name      = "${var.tenant_name}"
+  user_domain_name = "${var.user_domain_name != "" ? var.user_domain_name : var.domain_name}"
+  password         = "${var.password}"
+  auth_url         = "${var.auth_url}"
+  region           = "${var.region}"
 }
 
 provider "local" {
@@ -19,7 +21,7 @@ resource "openstack_compute_keypair_v2" "basic_keypair" {
 }
 
 data "openstack_images_image_v2" "ubuntu" {
-  name = "${var.image_name}"
+  name        = "${var.image_name}"
   most_recent = true
 }
 
@@ -46,11 +48,11 @@ data "template_file" "master_init" {
 # Render a multi-part cloudinit config making use of the part
 # above, and other source files
 data "template_cloudinit_config" "master_config" {
-  gzip           = false
-  base64_encode  = false
+  gzip          = false
+  base64_encode = false
 
   part {
-    content      = "${data.template_file.master_init.rendered}"
+    content = "${data.template_file.master_init.rendered}"
   }
 }
 
@@ -63,12 +65,12 @@ resource "openstack_compute_instance_v2" "master" {
   user_data       = "${data.template_cloudinit_config.master_config.rendered}"
 
   metadata {
-    kubernetes    = "master"
-    cluster       = "${var.cluster_name}"
+    kubernetes = "master"
+    cluster    = "${var.cluster_name}"
   }
 
   network {
-    uuid          = "${openstack_networking_network_v2.private.id}"
+    uuid = "${openstack_networking_network_v2.private.id}"
   }
 }
 
@@ -93,11 +95,11 @@ data "template_file" "node_init" {
 # Render a multi-part cloudinit config making use of the part
 # above, and other source files
 data "template_cloudinit_config" "node_config" {
-  gzip           = false
-  base64_encode  = false
+  gzip          = false
+  base64_encode = false
 
   part {
-    content      = "${data.template_file.node_init.rendered}"
+    content = "${data.template_file.node_init.rendered}"
   }
 }
 
@@ -111,11 +113,11 @@ resource "openstack_compute_instance_v2" "node" {
   user_data       = "${data.template_cloudinit_config.node_config.rendered}"
 
   metadata {
-    kubernetes    = "node"
-    cluster       = "${var.cluster_name}"
+    kubernetes = "node"
+    cluster    = "${var.cluster_name}"
   }
 
   network {
-    uuid          = "${openstack_networking_network_v2.private.id}"
+    uuid = "${openstack_networking_network_v2.private.id}"
   }
 }

@@ -37,12 +37,6 @@ apt:
         -----END PGP PUBLIC KEY BLOCK-----
 write_files:
 -   content: |
-        [Service]
-        Environment="KUBELET_EXTRA_ARGS=---cloud-provider=external --cloud-config=/etc/kubernetes/pki/cloud-config --container-runtime=remote --container-runtime-endpoint=unix:///run/containerd/containerd.sock"
-    path: /etc/systemd/system/kubelet.service.d/20-kubeadm.conf
-    owner: root:root
-    permissions: '0644'
--   content: |
         apiVersion: v1
         clusters:
         - cluster:
@@ -226,6 +220,11 @@ write_files:
           taints:
           - effect: NoSchedule
             key: node-role.kubernetes.io/master
+          kubeletExtraArgs:
+            cloud-provider: external
+            cloud-config: /etc/kubernetes/pki/cloud-config
+            container-runtime: remote
+            container-runtime-endpoint: unix:///run/containerd/containerd.sock
         unifiedControlPlaneImage: ""
         featureGates:
           Auditing: true
@@ -492,6 +491,40 @@ write_files:
     path: /etc/kubernetes/addons/openstack-ccm.yaml
     owner: root:root
     permissions: '0600'
+-   content: |
+        #!/bin/bash
+        set -eu
+
+        curl -sLo /tmp/containerd.tar.gz "https://storage.googleapis.com/cri-containerd-release/cri-containerd-${containerd_version}.linux-amd64.tar.gz"
+        tar -C / -xzf /tmp/containerd.tar.gz
+        systemctl start containerd
+        systemctl enable containerd
+        modprobe ip_vs_rr
+        modprobe ip_vs_wrr
+        modprobe ip_vs_sh
+        modprobe ip_vs
+        modprobe br_netfilter
+        modprobe nf_conntrack_ipv4
+        echo '1' > /proc/sys/net/ipv4/ip_forward
+        echo '1' > /proc/sys/net/bridge/bridge-nf-call-iptables
+        kubeadm init --config /etc/kubernetes/kubeadm.yaml --skip-token-print
+        mkdir -p /root/.kube
+        cp -i /etc/kubernetes/admin.conf /root/.kube/config
+        mkdir -p /home/ubuntu/.kube
+        cp -i /etc/kubernetes/admin.conf /home/ubuntu/.kube/config
+        chown ubuntu /home/ubuntu/.kube/config
+        kubectl --kubeconfig=/etc/kubernetes/admin.conf apply -f "https://docs.projectcalico.org/v3.1/getting-started/kubernetes/installation/hosted/rbac-kdd.yaml"
+        kubectl --kubeconfig=/etc/kubernetes/admin.conf apply -f "https://docs.projectcalico.org/v3.1/getting-started/kubernetes/installation/hosted/kubernetes-datastore/calico-networking/1.7/calico.yaml"
+        kubectl --kubeconfig=/etc/kubernetes/admin.conf --namespace=kube-system patch daemonset kube-proxy --type=json -p='[{"op": "add", "path": "/spec/template/spec/tolerations/0", "value": {"effect": "NoSchedule", "key": "node.cloudprovider.kubernetes.io/uninitialized"} }]'
+        kubectl --kubeconfig=/etc/kubernetes/admin.conf apply -f "https://raw.githubusercontent.com/kubernetes/dashboard/v1.8.3/src/deploy/recommended/kubernetes-dashboard.yaml"
+        kubectl --kubeconfig=/etc/kubernetes/admin.conf apply -f "https://raw.githubusercontent.com/kubernetes/heapster/v1.5.3/deploy/kube-config/rbac/heapster-rbac.yaml"
+        kubectl --kubeconfig=/etc/kubernetes/admin.conf apply -f "https://raw.githubusercontent.com/kubernetes/heapster/v1.5.3/deploy/kube-config/standalone/heapster-controller.yaml"
+        kubectl --kubeconfig=/etc/kubernetes/admin.conf --namespace=kube-system create configmap cloud-config --from-file=/etc/kubernetes/pki/cloud-config
+        kubectl --kubeconfig=/etc/kubernetes/admin.conf apply -f "/etc/kubernetes/addons"
+    path: /usr/local/bin/init.sh
+    owner: root:root
+    permissions: '0700'
+
 packages:
   - unzip
   - tar
@@ -515,28 +548,4 @@ packages:
 # TODO: create extra dir with kubernetes addons --> remove everythin except OpenStack integration
 # The addon deployment can be moved out once we have a stable endpoint
 runcmd:
-  - [ curl, -sLo, /tmp/containerd.tar.gz, "https://storage.googleapis.com/cri-containerd-release/cri-containerd-${containerd_version}.linux-amd64.tar.gz" ]
-  - [ tar, -C, /, -xzf, /tmp/containerd.tar.gz ]
-  - [ systemctl, start, containerd ]
-  - [ systemctl, enable, containerd ]
-  - [ modprobe, ip_vs_rr ]
-  - [ modprobe, ip_vs_wrr ]
-  - [ modprobe, ip_vs_sh ]
-  - [ modprobe, ip_vs ]
-  - [ modprobe, br_netfilter ]
-  - [ modprobe, nf_conntrack_ipv4 ]
-  - "echo '1' > /proc/sys/net/ipv4/ip_forward"
-  - "echo '1' > /proc/sys/net/bridge/bridge-nf-call-iptables"
-  - [ kubeadm, init, --config, /etc/kubernetes/kubeadm.yaml, --skip-token-print ]
-  - [ mkdir, -p, /root/.kube ]
-  - [ cp, -i, /etc/kubernetes/admin.conf, /root/.kube/config ]
-  - [ mkdir, -p, /home/ubuntu/.kube ]
-  - [ cp, -i, /etc/kubernetes/admin.conf, /home/ubuntu/.kube/config ]
-  - [ chown, ubuntu, /home/ubuntu/.kube/config ]
-  - [ kubectl, --kubeconfig=/etc/kubernetes/admin.conf, apply, -f, "https://docs.projectcalico.org/v3.1/getting-started/kubernetes/installation/hosted/rbac-kdd.yaml" ]
-  - [ kubectl, --kubeconfig=/etc/kubernetes/admin.conf, apply, -f, "https://docs.projectcalico.org/v3.1/getting-started/kubernetes/installation/hosted/kubernetes-datastore/calico-networking/1.7/calico.yaml" ]
-  - [ kubectl, --kubeconfig=/etc/kubernetes/admin.conf, apply, -f, "https://raw.githubusercontent.com/kubernetes/dashboard/v1.8.3/src/deploy/recommended/kubernetes-dashboard.yaml" ]
-  - [ kubectl, --kubeconfig=/etc/kubernetes/admin.conf, apply, -f, "https://raw.githubusercontent.com/kubernetes/heapster/v1.5.3/deploy/kube-config/rbac/heapster-rbac.yaml" ]
-  - [ kubectl, --kubeconfig=/etc/kubernetes/admin.conf, apply, -f, "https://raw.githubusercontent.com/kubernetes/heapster/v1.5.3/deploy/kube-config/standalone/heapster-controller.yaml" ]
-  - [ kubectl, --kubeconfig=/etc/kubernetes/admin.conf, create, configmap, cloud-config, "--from-file=/etc/kubernetes/pki/cloud-config", "--namespace=kube-system" ]
-  - [ kubectl, --kubeconfig=/etc/kubernetes/admin.conf, apply, -f, "/etc/kubernetes/addons" ]
+  - [ /usr/local/bin/init.sh ]
