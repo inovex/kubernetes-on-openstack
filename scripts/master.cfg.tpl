@@ -103,44 +103,44 @@ write_files:
               local:
                 dataDir: /var/lib/etcd
                 image: ""
-            imageRepository: k8s.gcr.io
-            kubeProxy:
-              config:
-                bindAddress: 0.0.0.0
-                clientConnection:
-                  acceptContentTypes: ""
-                  burst: 10
-                  contentType: application/vnd.kubernetes.protobuf
-                  kubeconfig: /var/lib/kube-proxy/kubeconfig.conf
-                  qps: 5
-                clusterCIDR: ""
-                configSyncPeriod: 15m0s
-                conntrack:
-                  max: null
-                  maxPerCore: 32768
-                  min: 131072
-                  tcpCloseWaitTimeout: 1h0m0s
-                  tcpEstablishedTimeout: 24h0m0s
-                enableProfiling: false
-                healthzBindAddress: 0.0.0.0:10256
-                hostnameOverride: ""
-                iptables:
-                  masqueradeAll: false
-                  masqueradeBit: 14
-                  minSyncPeriod: 0s
-                  syncPeriod: 30s
-                ipvs:
-                  ExcludeCIDRs: null
-                  minSyncPeriod: 0s
-                  scheduler: ""
-                  syncPeriod: 30s
-                metricsBindAddress: 127.0.0.1:10249
-                mode: "ipvs"
-                nodePortAddresses: null
-                oomScoreAdj: -999
-                portRange: ""
-                resourceContainer: /kube-proxy
-                udpIdleTimeout: 250ms
+        imageRepository: k8s.gcr.io
+        kubeProxy:
+          config:
+            bindAddress: 0.0.0.0
+            clientConnection:
+              acceptContentTypes: ""
+              burst: 10
+              contentType: application/vnd.kubernetes.protobuf
+              kubeconfig: /var/lib/kube-proxy/kubeconfig.conf
+              qps: 5
+            clusterCIDR: ""
+            configSyncPeriod: 15m0s
+            conntrack:
+              max: null
+              maxPerCore: 32768
+              min: 131072
+              tcpCloseWaitTimeout: 1h0m0s
+              tcpEstablishedTimeout: 24h0m0s
+            enableProfiling: false
+            healthzBindAddress: 0.0.0.0:10256
+            hostnameOverride: ""
+            iptables:
+              masqueradeAll: false
+              masqueradeBit: 14
+              minSyncPeriod: 0s
+              syncPeriod: 30s
+            ipvs:
+              ExcludeCIDRs: null
+              minSyncPeriod: 0s
+              scheduler: ""
+              syncPeriod: 30s
+            metricsBindAddress: 127.0.0.1:10249
+            mode: "ipvs"
+            nodePortAddresses: null
+            oomScoreAdj: -999
+            portRange: ""
+            resourceContainer: /kube-proxy
+            udpIdleTimeout: 250ms
         kubeletConfiguration:
           baseConfig:
             address: 0.0.0.0
