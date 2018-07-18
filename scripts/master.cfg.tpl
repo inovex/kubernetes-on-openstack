@@ -99,10 +99,10 @@ write_files:
             - authentication
             certificatesDir: /etc/kubernetes/pki
             clusterName: kubernetes
-            etcd:
-              local:
-                dataDir: /var/lib/etcd
-                image: ""
+        etcd:
+          local:
+            dataDir: /var/lib/etcd
+            image: ""
         imageRepository: k8s.gcr.io
         kubeProxy:
           config:
