@@ -89,6 +89,7 @@ data "template_file" "node_init" {
     domain_name         = "${var.domain_name}"
     node_security_group = "${openstack_networking_secgroup_v2.secgroup_node.id}"
     containerd_version  = "${var.containerd_version}"
+    kubernetes_version  = "${var.kubernetes_version}"
   }
 }
 

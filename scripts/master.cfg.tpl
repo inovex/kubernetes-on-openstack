@@ -77,7 +77,7 @@ write_files:
 -   content: |
         apiVersion: kubeadm.k8s.io/v1alpha2
         kind: MasterConfiguration
-        kubernetesVersion: ${kubernetes_version}
+        kubernetesVersion: v${kubernetes_version}
         cloudProvider: external
         api:
           advertiseAddress: ${external_ip}
@@ -532,9 +532,9 @@ packages:
   - btrfs-tools
   - util-linux
   - nfs-common
-  - kubelet
-  - kubeadm
-  - kubectl
+  - [kubelet, "${kubernetes_version}-00"]
+  - [kubeadm, "${kubernetes_version}-00"]
+  - [kubectl, "${kubernetes_version}-00"]
   - jq
   - ipvsadm
   - socat

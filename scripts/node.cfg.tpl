@@ -61,8 +61,8 @@ packages:
   - btrfs-tools
   - util-linux
   - nfs-common
-  - kubelet
-  - kubeadm
+  - [kubelet, "${kubernetes_version}-00"]
+  - [kubeadm, "${kubernetes_version}-00"]
   - ipvsadm
   - socat
   - conntrack
