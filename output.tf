@@ -1,5 +1,5 @@
 output "master_ip" {
-  value = "ssh ubuntu@${openstack_networking_floatingip_v2.public_ip.address}"
+  value = "${openstack_networking_floatingip_v2.public_ip.address}"
 }
 
 data "template_file" "kubeconfig" {
@@ -22,5 +22,6 @@ resource "local_file" "kubeconfig" {
 }
 
 output "kubeconfig" {
-  value = "${data.template_file.kubeconfig.rendered}"
+  sensitive = true
+  value     = "${data.template_file.kubeconfig.rendered}"
 }

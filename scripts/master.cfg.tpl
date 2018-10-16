@@ -513,12 +513,9 @@ write_files:
         mkdir -p /home/ubuntu/.kube
         cp -i /etc/kubernetes/admin.conf /home/ubuntu/.kube/config
         chown ubuntu /home/ubuntu/.kube/config
-        kubectl --kubeconfig=/etc/kubernetes/admin.conf apply -f "https://docs.projectcalico.org/v3.1/getting-started/kubernetes/installation/hosted/rbac-kdd.yaml"
-        kubectl --kubeconfig=/etc/kubernetes/admin.conf apply -f "https://docs.projectcalico.org/v3.1/getting-started/kubernetes/installation/hosted/kubernetes-datastore/calico-networking/1.7/calico.yaml"
+        kubectl --kubeconfig=/etc/kubernetes/admin.conf apply -f "https://docs.projectcalico.org/v3.2/getting-started/kubernetes/installation/hosted/rbac-kdd.yaml"
+        kubectl --kubeconfig=/etc/kubernetes/admin.conf apply -f "https://docs.projectcalico.org/v3.2/getting-started/kubernetes/installation/hosted/kubernetes-datastore/calico-networking/1.7/calico.yaml"
         kubectl --kubeconfig=/etc/kubernetes/admin.conf --namespace=kube-system patch daemonset kube-proxy --type=json -p='[{"op": "add", "path": "/spec/template/spec/tolerations/0", "value": {"effect": "NoSchedule", "key": "node.cloudprovider.kubernetes.io/uninitialized", "value": "true"} }]'
-        kubectl --kubeconfig=/etc/kubernetes/admin.conf apply -f "https://raw.githubusercontent.com/kubernetes/dashboard/v1.8.3/src/deploy/recommended/kubernetes-dashboard.yaml"
-        kubectl --kubeconfig=/etc/kubernetes/admin.conf apply -f "https://raw.githubusercontent.com/kubernetes/heapster/v1.5.3/deploy/kube-config/rbac/heapster-rbac.yaml"
-        kubectl --kubeconfig=/etc/kubernetes/admin.conf apply -f "https://raw.githubusercontent.com/kubernetes/heapster/v1.5.3/deploy/kube-config/standalone/heapster-controller.yaml"
         kubectl --kubeconfig=/etc/kubernetes/admin.conf --namespace=kube-system create configmap cloud-config --from-file=/etc/kubernetes/pki/cloud-config
         kubectl --kubeconfig=/etc/kubernetes/admin.conf apply -f "/etc/kubernetes/addons"
     path: /usr/local/bin/init.sh
