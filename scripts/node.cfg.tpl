@@ -54,6 +54,24 @@ write_files:
     path: /etc/kubernetes/pki/cloud-config
     owner: root:root
     permissions: '0600'
+-   content: |
+        apiVersion: kubeadm.k8s.io/v1beta1
+        caCertPath: /etc/kubernetes/pki/ca.crt
+        discovery:
+          bootstrapToken:
+            apiServerEndpoint: ${api_server}:6443
+            token: ${bootstrap_token}
+            unsafeSkipCAVerification: true
+          timeout: 5m0s
+          tlsBootstrapToken: ${bootstrap_token}
+        kind: JoinConfiguration
+        nodeRegistration:
+          criSocket: /run/containerd/containerd.sock
+          kubeletExtraArgs:
+            "node-labels": "node-role.kubernetes.io/node=\"\""
+    path: /etc/kubernetes/kubeadm.yaml
+    owner: root:root
+    permissions: '0600'
 packages:
   - unzip
   - tar
@@ -82,4 +100,4 @@ runcmd:
   - [ modprobe, nf_conntrack_ipv4 ]
   - "echo '1' > /proc/sys/net/ipv4/ip_forward"
   - "echo '1' > /proc/sys/net/bridge/bridge-nf-call-iptables"
-  - "until kubeadm join --token=${bootstrap_token} --cri-socket=/run/containerd/containerd.sock --discovery-token-unsafe-skip-ca-verification ${api_server}:6443; do sleep 5; done"
+  - "until kubeadm join  --config=/etc/kubernetes/kubeadm.yaml; do sleep 5; done"

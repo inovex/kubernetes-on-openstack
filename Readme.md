@@ -19,6 +19,7 @@ module "my_cluster" {
   user_domain_name  = "user_domain_name"
   project_id        = "project_id"
   image_name        = "image_name"
+  # kubernetes_version  = "1.13.2"
 }
 
 resource "local_file" "kubeconfig" {
