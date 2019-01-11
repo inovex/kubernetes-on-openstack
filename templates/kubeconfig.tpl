@@ -12,19 +12,16 @@ users:
       # resource. Required.
       #
       # The API version returned by the plugin MUST match the version encoded.
-      apiVersion: "client.authentication.k8s.io/v1alpha1"
-
-      # Environment variables to set when executing the plugin. Optional.
-      env:
-      - name: "OS_USERNAME"
-        value: "${username}"
-      - name: "OS_PASSWORD"
-        value: "${password}"
+      apiVersion: "client.authentication.k8s.io/v1beta1"
 
       # Arguments to pass when executing the plugin. Optional.
       args:
       - "--domain-name=${domain_name}"
       - "--keystone-url=${auth_url}"
+      - "--project-name=${tenant_name}"
+      - "--user-name=${username}"
+      - "--password=${password}"
+      - "--v=10"
 clusters:
 - name: ${cluster_name}
   cluster:

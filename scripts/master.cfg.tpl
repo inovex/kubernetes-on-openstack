@@ -41,7 +41,7 @@ write_files:
         clusters:
         - cluster:
             insecure-skip-tls-verify: true
-            server: https://localhost:8443/webhook
+            server: https://10.96.0.11:8443/webhook
           name: webhook
         contexts:
         - context:
@@ -86,7 +86,7 @@ write_files:
           - signing
           - authentication
         localAPIEndpoint:
-          # This will be replaced bz sed
+          # This will be replaced by sed
           advertiseAddress: ${external_ip}
           bindPort: 6443
         nodeRegistration:
@@ -96,7 +96,6 @@ write_files:
             cloud-provider: external
             container-runtime: remote
             container-runtime-endpoint: unix:///run/containerd/containerd.sock
-          # ToDo Add kubelet extra args with label?
           taints:
           - effect: NoSchedule
             key: node-role.kubernetes.io/master
@@ -276,7 +275,7 @@ write_files:
     permissions: '0600'
 -   content: |
         apiVersion: apps/v1
-        kind: DaemonSet
+        kind: Deployment
         metadata:
           name: k8s-keystone-auth
           namespace: kube-system
@@ -286,68 +285,53 @@ write_files:
           selector:
             matchLabels:
               k8s-app: k8s-keystone-auth
-          updateStrategy:
-            type: RollingUpdate
           template:
             metadata:
               labels:
                 k8s-app: k8s-keystone-auth
             spec:
-              hostNetwork: true
-              nodeSelector:
-                node-role.kubernetes.io/master: ""
-              tolerations:
-              - key: node.cloudprovider.kubernetes.io/uninitialized
-                value: "true"
-                effect: NoSchedule
-              - key: node-role.kubernetes.io/master
-                effect: NoSchedule
               containers:
                 - name: k8s-keystone-auth
-                  image: docker.io/k8scloudprovider/k8s-keystone-auth:v0.1.0
+                  image: k8scloudprovider/k8s-keystone-auth:1.13.1
                   args:
-                    - /bin/k8s-keystone-auth
+                    - ./bin/k8s-keystone-auth
                     - --v=10
                     - --tls-cert-file
                     - /etc/kubernetes/pki/apiserver.crt
                     - --tls-private-key-file
                     - /etc/kubernetes/pki/apiserver.key
-                    - --keystone-policy-file
-                    - /etc/kubernetes/webhook/policy.json
-                    - --keystone-url=${auth_url}
+                    - --keystone-url
+                    - ${auth_url}
                   volumeMounts:
                     - mountPath: /etc/kubernetes/pki
                       name: k8s-certs
-                      readOnly: true
-                    - mountPath: /etc/kubernetes/webhook
-                      name: k8s-webhook
-                      readOnly: true
-                    - mountPath: /etc/ssl/certs
-                      name: ca-certs
                       readOnly: true
                   resources:
                     requests:
                       cpu: 200m
                   ports:
                     - containerPort: 8443
-                      hostPort: 8443
                       name: https
                       protocol: TCP
-              hostNetwork: true
               volumes:
-              - hostPath:
-                  path: /etc/kubernetes/pki
-                  type: DirectoryOrCreate
-                name: k8s-certs
-              - hostPath:
-                  path: /etc/kubernetes/webhook
-                  type: DirectoryOrCreate
-                name: k8s-webhook
-              - hostPath:
-                  path: /etc/ssl/certs
-                  type: DirectoryOrCreate
-                name: ca-certs
-    path: /etc/kubernetes/addons/keystone-webhook-ds.yaml
+              - name: k8s-certs
+                secret:
+                  secretName: keystone-auth-certs
+        ---
+        kind: Service
+        apiVersion: v1
+        metadata:
+          name: k8s-keystone-auth-service
+          namespace: kube-system
+        spec:
+          clusterIP: 10.96.0.11
+          selector:
+            app: k8s-keystone-auth
+          ports:
+            - protocol: TCP
+              port: 8443
+              targetPort: 8443
+    path: /etc/kubernetes/addons/keystone-auth-webhook.yaml
     owner: root:root
     permissions: '0600'
 -   content: |
@@ -426,7 +410,7 @@ write_files:
           namespace: kube-system
         ---
         apiVersion: apps/v1
-        kind: DaemonSet
+        kind: Deployment
         metadata:
           name: openstack-cloud-controller-manager
           namespace: kube-system
@@ -436,15 +420,11 @@ write_files:
           selector:
             matchLabels:
               k8s-app: openstack-cloud-controller-manager
-          updateStrategy:
-            type: RollingUpdate
           template:
             metadata:
               labels:
                 k8s-app: openstack-cloud-controller-manager
             spec:
-              nodeSelector:
-                node-role.kubernetes.io/master: ""
               securityContext:
                 runAsUser: 1001
               tolerations:
@@ -454,48 +434,35 @@ write_files:
               - key: node-role.kubernetes.io/master
                 effect: NoSchedule
               serviceAccountName: cloud-controller-manager
+              # ToDo Add health checks
               containers:
                 - name: openstack-cloud-controller-manager
-                  image: docker.io/k8scloudprovider/openstack-cloud-controller-manager:v0.1.0
+                  image: k8scloudprovider/openstack-cloud-controller-manager:1.13.1
                   args:
-                    - /bin/openstack-cloud-controller-manager
+                    - ./bin/openstack-cloud-controller-manager
                     - --v=2
                     - --cloud-config=/etc/cloud/cloud-config
                     - --cloud-provider=openstack
                     - --use-service-account-credentials=true
-                    - --address=127.0.0.1
+                    - --bind-address=127.0.0.1
                   volumeMounts:
-                    - mountPath: /etc/kubernetes/pki
-                      name: k8s-certs
-                      readOnly: true
                     - mountPath: /etc/ssl/certs
                       name: ca-certs
                       readOnly: true
                     - mountPath: /etc/cloud
                       name: cloud-config-volume
                       readOnly: true
-                    - mountPath: /usr/libexec/kubernetes/kubelet-plugins/volume/exec
-                      name: flexvolume-dir
                   resources:
                     requests:
                       cpu: 200m
-              hostNetwork: true
               volumes:
-              - hostPath:
-                  path: /usr/libexec/kubernetes/kubelet-plugins/volume/exec
-                  type: DirectoryOrCreate
-                name: flexvolume-dir
-              - hostPath:
-                  path: /etc/kubernetes/pki
-                  type: DirectoryOrCreate
-                name: k8s-certs
               - hostPath:
                   path: /etc/ssl/certs
                   type: DirectoryOrCreate
                 name: ca-certs
               - name: cloud-config-volume
-                configMap:
-                  name: cloud-config
+                secret:
+                  secretName: cloud-config
     path: /etc/kubernetes/addons/openstack-ccm.yaml
     owner: root:root
     permissions: '0600'
@@ -519,17 +486,20 @@ write_files:
         export LOCAL_IP=$(jq -r '.ds.ec2_metadata."local-ipv4"' /run/cloud-init/instance-data.json)
         sed -i "s/^  advertiseAddress: .*$/  advertiseAddress: $${LOCAL_IP}/" /etc/kubernetes/kubeadm.yaml
         unset LOCAL_IP
-        cat  /etc/kubernetes/pki/webhook.kubeconfig
         kubeadm init --config /etc/kubernetes/kubeadm.yaml --skip-token-print
         mkdir -p /root/.kube
         cp -i /etc/kubernetes/admin.conf /root/.kube/config
         mkdir -p /home/ubuntu/.kube
         cp -i /etc/kubernetes/admin.conf /home/ubuntu/.kube/config
         chown ubuntu /home/ubuntu/.kube/config
-        kubectl --kubeconfig=/etc/kubernetes/admin.conf apply -f "https://docs.projectcalico.org/v3.4/getting-started/kubernetes/installation/hosted/kubernetes-datastore/calico-networking/1.7/calico.yaml"
-        kubectl --kubeconfig=/etc/kubernetes/admin.conf --namespace=kube-system patch daemonset kube-proxy --type=json -p='[{"op": "add", "path": "/spec/template/spec/tolerations/0", "value": {"effect": "NoSchedule", "key": "node.cloudprovider.kubernetes.io/uninitialized", "value": "true"} }]'
-        kubectl --kubeconfig=/etc/kubernetes/admin.conf --namespace=kube-system create configmap cloud-config --from-file=/etc/kubernetes/pki/cloud-config
-        kubectl --kubeconfig=/etc/kubernetes/admin.conf apply -f "/etc/kubernetes/addons"
+
+        export KUBECONFIG=/etc/kubernetes/admin.conf
+        kubectl apply -f "https://docs.projectcalico.org/v3.4/getting-started/kubernetes/installation/hosted/kubernetes-datastore/calico-networking/1.7/calico.yaml"
+        #ToDo review
+        kubectl --namespace=kube-system patch daemonset kube-proxy --type=json -p='[{"op": "add", "path": "/spec/template/spec/tolerations/0", "value": {"effect": "NoSchedule", "key": "node.cloudprovider.kubernetes.io/uninitialized", "value": "true"} }]'
+        kubectl --namespace=kube-system create secret generic cloud-config --from-file=/etc/kubernetes/pki/cloud-config
+        kubectl --namespace=kube-system create secret generic keystone-auth-certs --from-file=cert-file=/etc/kubernetes/pki/apiserver.crt --from-file=key-file=/etc/kubernetes/pki/apiserver.key
+        kubectl apply -f "/etc/kubernetes/addons"
     path: /usr/local/bin/init.sh
     owner: root:root
     permissions: '0700'
@@ -551,11 +521,6 @@ packages:
   - ipset
   - libseccomp2
 
-# ToDo update!
-# Integrate: https://github.com/dims/openstack-cloud-controller-manager
-# https://github.com/kubernetes/cloud-provider-openstack/tree/master/manifests/controller-manager
-# https://github.com/kubernetes/cloud-provider-openstack/blob/master/docs/using-controller-manager-with-kubeadm.md
-# TODO: create extra dir with kubernetes addons --> remove everythin except OpenStack integration
 # The addon deployment can be moved out once we have a stable endpoint
 runcmd:
   - [ /usr/local/bin/init.sh ]
