@@ -8,7 +8,7 @@ Create a `main.tf` with the following content (obviously set the variables to yo
 
 ```hcl
 module "my_cluster" {
-  source = "git::https://github.com/johscheuer/kubernetes-on-openstack.git?ref=v0.0.2"
+  source = "git::https://github.com/johscheuer/kubernetes-on-openstack.git?ref=v0.0.4"
 
   auth_url          = "auth_url"
   cluster_name      = "cluster_name"
@@ -19,6 +19,7 @@ module "my_cluster" {
   user_domain_name  = "user_domain_name"
   project_id        = "project_id"
   image_name        = "image_name"
+  kubernetes_version  = "1.13.2"
 }
 
 resource "local_file" "kubeconfig" {
@@ -43,16 +44,18 @@ terraform apply
 
 ## Authentication
 
-The Kubernetes cluster will use Keystone authentication (over a WebHook). For more information have a look [here](https://github.com/dims/openstack-cloud-controller-manager/blob/master/docs/using-keystone-webhook-authenticator-and-authorizer.md). After running `terraform apply` there will be output how to authenticate against the newly created cluster. In order to actually authenticate with KeyStone you need to perform the following steps described [here](https://github.com/dims/openstack-cloud-controller-manager/blob/master/docs/using-keystone-webhook-authenticator-and-authorizer.md#k8s-kubectl-client-configuration). The `--insecure-skip-tls-verify=true` is needed because we use the auto-generated certificates of kubeadm. There are possible workarounds to remove the flag (e.g. fetch the ca from the Kubernetes master). In order to use the keystone auth we need to install the [keystone-auth plugin](https://github.com/kubernetes/cloud-provider-openstack/blob/master/docs/using-client-keystone-auth.md)
+The Kubernetes cluster will use Keystone authentication (over a WebHook). For more information have a look [here](https://github.com/kubernetes/cloud-provider-openstack/blob/master/docs/using-keystone-webhook-authenticator-and-authorizer.md). After running `terraform apply` there will be a kubeconfig file configured for the newly created cluster. The `--insecure-skip-tls-verify=true` in the kubeconfig fils is needed because we use the auto-generated certificates of kubeadm. There are possible workarounds to remove the flag (e.g. fetch the ca from the Kubernetes master).
 
 Keep in mind: As a default all users in the (OpenStack) project will have `cluster-admin` rights.
 
 ### Install the keystone auth plugin
 
+For mor details look at the official [docs](https://github.com/kubernetes/cloud-provider-openstack/blob/master/docs/using-keystone-webhook-authenticator-and-authorizer.md#new-kubectl-clients-from-v1110-and-later) or just use the quick start:
+
 ```bash
-VERSION=v0.1.0
+VERSION=1.13.1
 OS=$(uname | tr '[:upper:]' '[:lower:]')
-curl -sLO https://github.com/kubernetes/cloud-provider-openstack/releases/download/${VERSION}/cloud-provider-openstack-${VERSION}-${OS}-amd64.tar.gz
+curl -sLO "https://github.com/kubernetes/cloud-provider-openstack/releases/download/${VERSION}/cloud-provider-openstack-${VERSION}-${OS}-amd64.tar.gz"
 tar xfz cloud-provider-openstack-${VERSION}-${OS}-amd64.tar.gz
 rm cloud-provider-openstack-${VERSION}-${OS}-amd64.tar.gz
 
@@ -62,13 +65,26 @@ rm -rf ${OS}-amd64
 
 Now you can use the kubeconfig with `kubectl --kubeconfig kubeconfig get nodes` or set `export KUBECONFIG="$(pwd)/kubeconfig"` to interact with the cluster.
 
-## Deploy the OpenStack Cloud provider
-
-**This step is done automatically** In this step we deploy the [cloud-provider-openstack](https://github.com/kubernetes/cloud-provider-openstack) which allows us to create OpenStack LoadBalancer and Cinder Volumes as needed.
+In order to prevent to use `insecure-skip-tls-verify=true` you can fetch the cluster CA:
 
 ```bash
-kubectl apply -f manifests/openstack-ccm.yml
+export MASTER_IP=""
+export CLUSTER_CA=$(curl -sk "https://${MASTER_IP}:6443/api/v1/namespaces/kube-public/configmaps/cluster-info" | jq -r '.data.kubeconfig' | grep -o 'certificate-authority-data:.*' | awk '{print $2}')
+# ${CLUSTER_NAME} must match the name provided in the terraform.tfvars
+export CLUSTER_NAME=""
+
+kubectl --kubeconfig ./kubeconfig config set clusters.${CLUSTER_NAME}.certificate-authority-data ${CLUSTER_CA}
+kubectl --kubeconfig ./kubeconfig config set clusters.${CLUSTER_NAME}.insecure-skip-tls-verify false
+
+unset CLUSTER_CA
+unset MASTER_IP
+unset CLUSTER_NAME
 ```
+
+## Automatically deployed components
+
+- [cloud-provider-openstack](https://github.com/kubernetes/cloud-provider-openstack)
+- [calico](https://docs.projectcalico.org/v3.4/getting-started/kubernetes/installation/calico#installing-with-the-kubernetes-api-datastore50-nodes-or-less)
 
 ## Test the OpenStack integration
 
@@ -76,6 +92,30 @@ kubectl apply -f manifests/openstack-ccm.yml
 kubectl run nginx --image=nginx --port=80
 kubectl expose deployment nginx --port=80 --type=LoadBalancer
 ```
+
+## Access nodes
+
+In the current setup the master node can be used as jumphost:
+
+```bash
+ssh -J ubuntu@master ubuntu@node-0
+```
+
+## Shared environments
+
+**Currently blocked**
+
+In order to create a shared Kubernetes cluster for multiple useres create we can use [application credentials](https://docs.openstack.org/python-openstackclient/rocky/cli/command-objects/application-credentials.html)
+
+```bash
+openstack --os-cloud <cloud> --os-project-id=<project-id> application credential create --restricted kubernetes
+```
+
+more docs will follow when the feature is merged.
+
+# Notes
+
+If you want to use containerd in version 1.2.2 you will probably face this issue if you use images from [quay.io](https://quay.io) -> https://github.com/containerd/containerd/issues/2840
 
 # TODO
 
@@ -88,4 +128,4 @@ kubectl expose deployment nginx --port=80 --type=LoadBalancer
 - [ ] HA control plane (<https://kubernetes.io/docs/setup/independent/high-availability>)
 - [ ] Add extra disks to master and worker
 - [X] Use [containerd](https://containerd.io)
-- [ ] Use Master as Jumphost
+- [X] Use Master as Jumphost

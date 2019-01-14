@@ -41,7 +41,7 @@ write_files:
         clusters:
         - cluster:
             insecure-skip-tls-verify: true
-            server: https://localhost:8443/webhook
+            server: https://10.96.0.11:8443/webhook
           name: webhook
         contexts:
         - context:
@@ -75,165 +75,172 @@ write_files:
     owner: root:root
     permissions: '0600'
 -   content: |
-        apiVersion: kubeadm.k8s.io/v1alpha2
-        kind: MasterConfiguration
-        kubernetesVersion: v${kubernetes_version}
-        cloudProvider: external
-        api:
+        apiVersion: kubeadm.k8s.io/v1beta1
+        kind: InitConfiguration
+        bootstrapTokens:
+        - groups:
+          - system:bootstrappers:kubeadm:default-node-token
+          token: ${bootstrap_token}
+          ttl: 24h0m0s
+          usages:
+          - signing
+          - authentication
+        localAPIEndpoint:
+          # This will be replaced by sed
           advertiseAddress: ${external_ip}
           bindPort: 6443
-          controlPlaneEndpoint: ""
-        auditPolicy:
-          logDir: /var/log/kubernetes/audit
-          logMaxAge: 2
-          path: ""
-        apiServerCertSANs:
-          - ${external_ip}
-        bootstrapTokens:
-          - groups:
-            - system:bootstrappers:kubeadm:default-node-token
-            token: ${bootstrap_token}
-            ttl: 24h0m0s
-            usages:
-            - signing
-            - authentication
-            certificatesDir: /etc/kubernetes/pki
-            clusterName: kubernetes
-        etcd:
-          local:
-            dataDir: /var/lib/etcd
-            image: ""
-        imageRepository: k8s.gcr.io
-        kubeProxy:
-          config:
-            bindAddress: 0.0.0.0
-            clientConnection:
-              acceptContentTypes: ""
-              burst: 10
-              contentType: application/vnd.kubernetes.protobuf
-              kubeconfig: /var/lib/kube-proxy/kubeconfig.conf
-              qps: 5
-            clusterCIDR: ""
-            configSyncPeriod: 15m0s
-            conntrack:
-              max: null
-              maxPerCore: 32768
-              min: 131072
-              tcpCloseWaitTimeout: 1h0m0s
-              tcpEstablishedTimeout: 24h0m0s
-            enableProfiling: false
-            healthzBindAddress: 0.0.0.0:10256
-            hostnameOverride: ""
-            iptables:
-              masqueradeAll: false
-              masqueradeBit: 14
-              minSyncPeriod: 0s
-              syncPeriod: 30s
-            ipvs:
-              ExcludeCIDRs: null
-              minSyncPeriod: 0s
-              scheduler: ""
-              syncPeriod: 30s
-            metricsBindAddress: 127.0.0.1:10249
-            mode: "ipvs"
-            nodePortAddresses: null
-            oomScoreAdj: -999
-            portRange: ""
-            resourceContainer: /kube-proxy
-            udpIdleTimeout: 250ms
-        kubeletConfiguration:
-          baseConfig:
-            address: 0.0.0.0
-            authentication:
-              anonymous:
-                enabled: false
-              webhook:
-                cacheTTL: 2m0s
-                enabled: true
-              x509:
-                clientCAFile: /etc/kubernetes/pki/ca.crt
-            authorization:
-              mode: Webhook
-              webhook:
-                cacheAuthorizedTTL: 5m0s
-                cacheUnauthorizedTTL: 30s
-            cgroupDriver: systemd
-            cgroupsPerQOS: true
-            cgroupRoot: "/"
-            clusterDNS:
-            - 10.96.0.10
-            clusterDomain: cluster.local
-            containerLogMaxFiles: 5
-            containerLogMaxSize: 10Mi
-            contentType: application/vnd.kubernetes.protobuf
-            cpuCFSQuota: true
-            cpuManagerPolicy: none
-            cpuManagerReconcilePeriod: 10s
-            enableControllerAttachDetach: true
-            enableDebuggingHandlers: true
-            enforceNodeAllocatable:
-            - pods
-            eventBurst: 10
-            eventRecordQPS: 5
-            evictionHard:
-              imagefs.available: 15%
-              memory.available: 100Mi
-              nodefs.available: 10%
-              nodefs.inodesFree: 5%
-            evictionPressureTransitionPeriod: 5m0s
-            failSwapOn: true
-            fileCheckFrequency: 20s
-            hairpinMode: promiscuous-bridge
-            healthzBindAddress: 127.0.0.1
-            healthzPort: 10248
-            httpCheckFrequency: 20s
-            imageGCHighThresholdPercent: 85
-            imageGCLowThresholdPercent: 80
-            imageMinimumGCAge: 2m0s
-            iptablesDropBit: 15
-            iptablesMasqueradeBit: 14
-            kubeAPIBurst: 10
-            kubeAPIQPS: 5
-            makeIPTablesUtilChains: true
-            maxOpenFiles: 1000000
-            maxPods: 110
-            nodeStatusUpdateFrequency: 10s
-            oomScoreAdj: -999
-            podPidsLimit: -1
-            port: 10250
-            registryBurst: 10
-            registryPullQPS: 5
-            resolvConf: /etc/resolv.conf
-            rotateCertificates: true
-            runtimeRequestTimeout: 15m0s
-            serializeImagePulls: false
-            staticPodPath: /etc/kubernetes/manifests
-            streamingConnectionIdleTimeout: 4h0m0s
-            syncFrequency: 1m0s
-            volumeStatsAggPeriod: 1m0s
-        networking:
-          serviceSubnet: "10.96.0.0/16"
-          dnsDomain: "cluster.local"
-          podSubnet: "${pod_subnet}"
         nodeRegistration:
           criSocket: /run/containerd/containerd.sock
+          kubeletExtraArgs:
+            cloud-config: /etc/kubernetes/pki/cloud-config
+            cloud-provider: external
+            container-runtime: remote
+            container-runtime-endpoint: unix:///run/containerd/containerd.sock
           taints:
           - effect: NoSchedule
             key: node-role.kubernetes.io/master
-          kubeletExtraArgs:
-            cloud-provider: external
+        ---
+        apiVersion: kubeadm.k8s.io/v1beta1
+        kind: ClusterConfiguration
+        apiServer:
+          certSANs:
+          - ${external_ip}
+          extraArgs:
+            authentication-token-webhook-config-file: /etc/kubernetes/pki/webhook.kubeconfig
             cloud-config: /etc/kubernetes/pki/cloud-config
-            container-runtime: remote
-            container-runtime-endpoint: unix:///run/containerd/containerd.sock
-        unifiedControlPlaneImage: ""
-        featureGates:
-          Auditing: true
-        apiServerExtraArgs:
-          cloud-config: /etc/kubernetes/pki/cloud-config
-          authentication-token-webhook-config-file: "/etc/kubernetes/pki/webhook.kubeconfig"
-          external-hostname: "${external_ip}"
-        controllerManagerExtraArgs:
-          cloud-config: /etc/kubernetes/pki/cloud-config
+            external-hostname: ${external_ip}
+          timeoutForControlPlane: 4m0s
+        certificatesDir: /etc/kubernetes/pki
+        clusterName: kubernetes
+        controlPlaneEndpoint: ""
+        controllerManager:
+          extraArgs:
+            cloud-config: /etc/kubernetes/pki/cloud-config
+        dns:
+          type: CoreDNS
+        etcd:
+          local:
+            dataDir: /var/lib/etcd
+        imageRepository: k8s.gcr.io
+        kubernetesVersion: v${kubernetes_version}
+        networking:
+          dnsDomain: cluster.local
+          podSubnet: "${pod_subnet}"
+          serviceSubnet: 10.96.0.0/16
+        scheduler: {}
+        ---
+        apiVersion: kubeproxy.config.k8s.io/v1alpha1
+        kind: KubeProxyConfiguration
+        bindAddress: 0.0.0.0
+        clientConnection:
+          acceptContentTypes: ""
+          burst: 10
+          contentType: application/vnd.kubernetes.protobuf
+          kubeconfig: /var/lib/kube-proxy/kubeconfig.conf
+          qps: 5
+        clusterCIDR: ""
+        configSyncPeriod: 15m0s
+        conntrack:
+          max: null
+          maxPerCore: 32768
+          min: 131072
+          tcpCloseWaitTimeout: 1h0m0s
+          tcpEstablishedTimeout: 24h0m0s
+        enableProfiling: false
+        healthzBindAddress: 0.0.0.0:10256
+        hostnameOverride: ""
+        iptables:
+          masqueradeAll: false
+          masqueradeBit: 14
+          minSyncPeriod: 0s
+          syncPeriod: 30s
+        ipvs:
+          excludeCIDRs: null
+          minSyncPeriod: 0s
+          scheduler: ""
+          syncPeriod: 30s
+        metricsBindAddress: 127.0.0.1:10249
+        mode: ipvs
+        nodePortAddresses: null
+        oomScoreAdj: -999
+        portRange: ""
+        resourceContainer: /kube-proxy
+        udpIdleTimeout: 250ms
+        ---
+        kind: KubeletConfiguration
+        apiVersion: kubelet.config.k8s.io/v1beta1
+        address: 0.0.0.0
+        authentication:
+          anonymous:
+            enabled: false
+          webhook:
+            cacheTTL: 2m0s
+            enabled: true
+          x509:
+            clientCAFile: /etc/kubernetes/pki/ca.crt
+        authorization:
+          mode: Webhook
+          webhook:
+            cacheAuthorizedTTL: 5m0s
+            cacheUnauthorizedTTL: 30s
+        cgroupDriver: systemd
+        cgroupRoot: /
+        cgroupsPerQOS: true
+        clusterDNS:
+        - 10.96.0.10
+        clusterDomain: cluster.local
+        configMapAndSecretChangeDetectionStrategy: Watch
+        containerLogMaxFiles: 5
+        containerLogMaxSize: 10Mi
+        contentType: application/vnd.kubernetes.protobuf
+        cpuCFSQuota: true
+        cpuCFSQuotaPeriod: 100ms
+        cpuManagerPolicy: none
+        cpuManagerReconcilePeriod: 10s
+        enableControllerAttachDetach: true
+        enableDebuggingHandlers: true
+        enforceNodeAllocatable:
+        - pods
+        eventBurst: 10
+        eventRecordQPS: 5
+        evictionHard:
+          imagefs.available: 15%
+          memory.available: 100Mi
+          nodefs.available: 10%
+          nodefs.inodesFree: 5%
+        evictionPressureTransitionPeriod: 5m0s
+        failSwapOn: true
+        fileCheckFrequency: 20s
+        hairpinMode: promiscuous-bridge
+        healthzBindAddress: 127.0.0.1
+        healthzPort: 10248
+        httpCheckFrequency: 20s
+        imageGCHighThresholdPercent: 85
+        imageGCLowThresholdPercent: 80
+        imageMinimumGCAge: 2m0s
+        iptablesDropBit: 15
+        iptablesMasqueradeBit: 14
+        kubeAPIBurst: 10
+        kubeAPIQPS: 5
+        makeIPTablesUtilChains: true
+        maxOpenFiles: 1000000
+        maxPods: 110
+        nodeLeaseDurationSeconds: 40
+        nodeStatusReportFrequency: 10s
+        nodeStatusUpdateFrequency: 10s
+        oomScoreAdj: -999
+        podPidsLimit: -1
+        port: 10250
+        registryBurst: 10
+        registryPullQPS: 5
+        resolvConf: /etc/resolv.conf
+        rotateCertificates: true
+        runtimeRequestTimeout: 15m0s
+        serializeImagePulls: false
+        staticPodPath: /etc/kubernetes/manifests
+        streamingConnectionIdleTimeout: 4h0m0s
+        syncFrequency: 1m0s
+        volumeStatsAggPeriod: 1m0s
     path: /etc/kubernetes/kubeadm.yaml
     owner: root:root
     permissions: '0600'
@@ -268,7 +275,7 @@ write_files:
     permissions: '0600'
 -   content: |
         apiVersion: apps/v1
-        kind: DaemonSet
+        kind: Deployment
         metadata:
           name: k8s-keystone-auth
           namespace: kube-system
@@ -278,68 +285,53 @@ write_files:
           selector:
             matchLabels:
               k8s-app: k8s-keystone-auth
-          updateStrategy:
-            type: RollingUpdate
           template:
             metadata:
               labels:
                 k8s-app: k8s-keystone-auth
             spec:
-              hostNetwork: true
-              nodeSelector:
-                node-role.kubernetes.io/master: ""
-              tolerations:
-              - key: node.cloudprovider.kubernetes.io/uninitialized
-                value: "true"
-                effect: NoSchedule
-              - key: node-role.kubernetes.io/master
-                effect: NoSchedule
               containers:
                 - name: k8s-keystone-auth
-                  image: docker.io/k8scloudprovider/k8s-keystone-auth:v0.1.0
+                  image: k8scloudprovider/k8s-keystone-auth:1.13.1
                   args:
-                    - /bin/k8s-keystone-auth
+                    - ./bin/k8s-keystone-auth
                     - --v=10
                     - --tls-cert-file
                     - /etc/kubernetes/pki/apiserver.crt
                     - --tls-private-key-file
                     - /etc/kubernetes/pki/apiserver.key
-                    - --keystone-policy-file
-                    - /etc/kubernetes/webhook/policy.json
-                    - --keystone-url=${auth_url}
+                    - --keystone-url
+                    - ${auth_url}
                   volumeMounts:
                     - mountPath: /etc/kubernetes/pki
                       name: k8s-certs
-                      readOnly: true
-                    - mountPath: /etc/kubernetes/webhook
-                      name: k8s-webhook
-                      readOnly: true
-                    - mountPath: /etc/ssl/certs
-                      name: ca-certs
                       readOnly: true
                   resources:
                     requests:
                       cpu: 200m
                   ports:
                     - containerPort: 8443
-                      hostPort: 8443
                       name: https
                       protocol: TCP
-              hostNetwork: true
               volumes:
-              - hostPath:
-                  path: /etc/kubernetes/pki
-                  type: DirectoryOrCreate
-                name: k8s-certs
-              - hostPath:
-                  path: /etc/kubernetes/webhook
-                  type: DirectoryOrCreate
-                name: k8s-webhook
-              - hostPath:
-                  path: /etc/ssl/certs
-                  type: DirectoryOrCreate
-                name: ca-certs
-    path: /etc/kubernetes/addons/keystone-webhook-ds.yaml
+              - name: k8s-certs
+                secret:
+                  secretName: keystone-auth-certs
+        ---
+        kind: Service
+        apiVersion: v1
+        metadata:
+          name: k8s-keystone-auth-service
+          namespace: kube-system
+        spec:
+          clusterIP: 10.96.0.11
+          selector:
+            k8s-app: k8s-keystone-auth
+          ports:
+            - protocol: TCP
+              port: 8443
+              targetPort: 8443
+    path: /etc/kubernetes/addons/keystone-auth-webhook.yaml
     owner: root:root
     permissions: '0600'
 -   content: |
@@ -418,7 +410,7 @@ write_files:
           namespace: kube-system
         ---
         apiVersion: apps/v1
-        kind: DaemonSet
+        kind: Deployment
         metadata:
           name: openstack-cloud-controller-manager
           namespace: kube-system
@@ -428,15 +420,11 @@ write_files:
           selector:
             matchLabels:
               k8s-app: openstack-cloud-controller-manager
-          updateStrategy:
-            type: RollingUpdate
           template:
             metadata:
               labels:
                 k8s-app: openstack-cloud-controller-manager
             spec:
-              nodeSelector:
-                node-role.kubernetes.io/master: ""
               securityContext:
                 runAsUser: 1001
               tolerations:
@@ -446,48 +434,35 @@ write_files:
               - key: node-role.kubernetes.io/master
                 effect: NoSchedule
               serviceAccountName: cloud-controller-manager
+              # ToDo Add health checks
               containers:
                 - name: openstack-cloud-controller-manager
-                  image: docker.io/k8scloudprovider/openstack-cloud-controller-manager:v0.1.0
+                  image: k8scloudprovider/openstack-cloud-controller-manager:1.13.1
                   args:
-                    - /bin/openstack-cloud-controller-manager
+                    - ./bin/openstack-cloud-controller-manager
                     - --v=2
                     - --cloud-config=/etc/cloud/cloud-config
                     - --cloud-provider=openstack
                     - --use-service-account-credentials=true
-                    - --address=127.0.0.1
+                    - --bind-address=127.0.0.1
                   volumeMounts:
-                    - mountPath: /etc/kubernetes/pki
-                      name: k8s-certs
-                      readOnly: true
                     - mountPath: /etc/ssl/certs
                       name: ca-certs
                       readOnly: true
                     - mountPath: /etc/cloud
                       name: cloud-config-volume
                       readOnly: true
-                    - mountPath: /usr/libexec/kubernetes/kubelet-plugins/volume/exec
-                      name: flexvolume-dir
                   resources:
                     requests:
                       cpu: 200m
-              hostNetwork: true
               volumes:
-              - hostPath:
-                  path: /usr/libexec/kubernetes/kubelet-plugins/volume/exec
-                  type: DirectoryOrCreate
-                name: flexvolume-dir
-              - hostPath:
-                  path: /etc/kubernetes/pki
-                  type: DirectoryOrCreate
-                name: k8s-certs
               - hostPath:
                   path: /etc/ssl/certs
                   type: DirectoryOrCreate
                 name: ca-certs
               - name: cloud-config-volume
-                configMap:
-                  name: cloud-config
+                secret:
+                  secretName: cloud-config
     path: /etc/kubernetes/addons/openstack-ccm.yaml
     owner: root:root
     permissions: '0600'
@@ -507,17 +482,26 @@ write_files:
         modprobe nf_conntrack_ipv4
         echo '1' > /proc/sys/net/ipv4/ip_forward
         echo '1' > /proc/sys/net/bridge/bridge-nf-call-iptables
+        # Set local IP address
+        export LOCAL_IP=$(jq -r '.ds.ec2_metadata."local-ipv4"' /run/cloud-init/instance-data.json)
+        sed -i "s/^  advertiseAddress: .*$/  advertiseAddress: $${LOCAL_IP}/" /etc/kubernetes/kubeadm.yaml
+        unset LOCAL_IP
         kubeadm init --config /etc/kubernetes/kubeadm.yaml --skip-token-print
         mkdir -p /root/.kube
         cp -i /etc/kubernetes/admin.conf /root/.kube/config
         mkdir -p /home/ubuntu/.kube
         cp -i /etc/kubernetes/admin.conf /home/ubuntu/.kube/config
         chown ubuntu /home/ubuntu/.kube/config
-        kubectl --kubeconfig=/etc/kubernetes/admin.conf apply -f "https://docs.projectcalico.org/v3.2/getting-started/kubernetes/installation/hosted/rbac-kdd.yaml"
-        kubectl --kubeconfig=/etc/kubernetes/admin.conf apply -f "https://docs.projectcalico.org/v3.2/getting-started/kubernetes/installation/hosted/kubernetes-datastore/calico-networking/1.7/calico.yaml"
-        kubectl --kubeconfig=/etc/kubernetes/admin.conf --namespace=kube-system patch daemonset kube-proxy --type=json -p='[{"op": "add", "path": "/spec/template/spec/tolerations/0", "value": {"effect": "NoSchedule", "key": "node.cloudprovider.kubernetes.io/uninitialized", "value": "true"} }]'
-        kubectl --kubeconfig=/etc/kubernetes/admin.conf --namespace=kube-system create configmap cloud-config --from-file=/etc/kubernetes/pki/cloud-config
-        kubectl --kubeconfig=/etc/kubernetes/admin.conf apply -f "/etc/kubernetes/addons"
+
+        export KUBECONFIG=/etc/kubernetes/admin.conf
+        # a bug prevents downloading from quay.io -> open: could not fetch content descriptor -> https://github.com/containerd/containerd/issues/2840 so currently we limited and stuck with the old version
+        kubectl apply -f "https://docs.projectcalico.org/v3.4/getting-started/kubernetes/installation/hosted/kubernetes-datastore/calico-networking/1.7/calico.yaml"
+        # ToDo review
+        kubectl --namespace=kube-system patch daemonset kube-proxy --type=json -p='[{"op": "add", "path": "/spec/template/spec/tolerations/0", "value": {"effect": "NoSchedule", "key": "node.cloudprovider.kubernetes.io/uninitialized", "value": "true"} }]'
+        kubectl --namespace=kube-system create secret generic cloud-config --from-file=/etc/kubernetes/pki/cloud-config
+        kubectl --namespace=kube-system create secret generic keystone-auth-certs --from-file=/etc/kubernetes/pki/apiserver.crt --from-file=/etc/kubernetes/pki/apiserver.key
+        kubectl apply -f "/etc/kubernetes/addons"
+        unset KUBECONFIG
     path: /usr/local/bin/init.sh
     owner: root:root
     permissions: '0700'
@@ -539,10 +523,6 @@ packages:
   - ipset
   - libseccomp2
 
-# Integrate: https://github.com/dims/openstack-cloud-controller-manager
-# https://github.com/kubernetes/cloud-provider-openstack/tree/master/manifests/controller-manager
-# https://github.com/kubernetes/cloud-provider-openstack/blob/master/docs/using-controller-manager-with-kubeadm.md
-# TODO: create extra dir with kubernetes addons --> remove everythin except OpenStack integration
 # The addon deployment can be moved out once we have a stable endpoint
 runcmd:
   - [ /usr/local/bin/init.sh ]

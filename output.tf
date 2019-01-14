@@ -13,6 +13,7 @@ data "template_file" "kubeconfig" {
     api_server_url = "https://${openstack_networking_floatingip_v2.public_ip.address}:6443"
     cluster_name   = "${var.cluster_name}"
     auth_plugin    = "${pathexpand("./bin/client-keystone-auth")}"
+    tenant_name    = "${var.tenant_name}"
   }
 }
 
