@@ -68,11 +68,17 @@ Now you can use the kubeconfig with `kubectl --kubeconfig kubeconfig get nodes` 
 In order to prevent to use `insecure-skip-tls-verify=true` you can fetch the cluster CA:
 
 ```bash
-export CLUSTER_CA=$(curl -sk https://185.113.124.129:6443/api/v1/namespaces/kube-public/configmaps/cluster-info | jq -r '.data.kubeconfig' | grep -o 'certificate-authority-data:.*' | awk '{print $2}')
+export MASTER_IP=""
+export CLUSTER_CA=$(curl -sk "https://${MASTER_IP}:6443/api/v1/namespaces/kube-public/configmaps/cluster-info" | jq -r '.data.kubeconfig' | grep -o 'certificate-authority-data:.*' | awk '{print $2}')
+# ${CLUSTER_NAME} must match the name provided in the terraform.tfvars
+export CLUSTER_NAME=""
 
-# ${cluster_name} must match the name above
-kubectl config set clusters.${cluster_name}.certificate-authority-data ${CLUSTER_CA}
-kubectl config set clusters.${cluster_name}.insecure-skip-tls-verify false
+kubectl --kubeconfig ./kubeconfig config set clusters.${CLUSTER_NAME}.certificate-authority-data ${CLUSTER_CA}
+kubectl --kubeconfig ./kubeconfig config set clusters.${CLUSTER_NAME}.insecure-skip-tls-verify false
+
+unset CLUSTER_CA
+unset MASTER_IP
+unset CLUSTER_NAME
 ```
 
 ## Automatically deployed components
@@ -95,6 +101,18 @@ In the current setup the master node can be used as jumphost:
 ssh -J ubuntu@master ubuntu@node-0
 ```
 
+## Shared environments
+
+**Currently blocked**
+
+In order to create a shared Kubernetes cluster for multiple useres create we can use [application credentials](https://docs.openstack.org/python-openstackclient/rocky/cli/command-objects/application-credentials.html)
+
+```bash
+openstack --os-cloud <cloud> --os-project-id=<project-id> application credential create --restricted kubernetes
+```
+
+more docs will follow when the feature is merged.
+
 # TODO
 
 - [x] Adjust Docs (for module + kubeconfig)
@@ -107,4 +125,3 @@ ssh -J ubuntu@master ubuntu@node-0
 - [ ] Add extra disks to master and worker
 - [X] Use [containerd](https://containerd.io)
 - [X] Use Master as Jumphost
-- [ ] Test application credentials

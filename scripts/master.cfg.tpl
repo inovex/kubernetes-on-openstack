@@ -326,7 +326,7 @@ write_files:
         spec:
           clusterIP: 10.96.0.11
           selector:
-            app: k8s-keystone-auth
+            k8s-app: k8s-keystone-auth
           ports:
             - protocol: TCP
               port: 8443
@@ -494,12 +494,14 @@ write_files:
         chown ubuntu /home/ubuntu/.kube/config
 
         export KUBECONFIG=/etc/kubernetes/admin.conf
+        # a bug prevents downloading from quay.io -> open: could not fetch content descriptor -> https://github.com/containerd/containerd/issues/2840 so currently we limited and stuck with the old version
         kubectl apply -f "https://docs.projectcalico.org/v3.4/getting-started/kubernetes/installation/hosted/kubernetes-datastore/calico-networking/1.7/calico.yaml"
-        #ToDo review
+        # ToDo review
         kubectl --namespace=kube-system patch daemonset kube-proxy --type=json -p='[{"op": "add", "path": "/spec/template/spec/tolerations/0", "value": {"effect": "NoSchedule", "key": "node.cloudprovider.kubernetes.io/uninitialized", "value": "true"} }]'
         kubectl --namespace=kube-system create secret generic cloud-config --from-file=/etc/kubernetes/pki/cloud-config
-        kubectl --namespace=kube-system create secret generic keystone-auth-certs --from-file=cert-file=/etc/kubernetes/pki/apiserver.crt --from-file=key-file=/etc/kubernetes/pki/apiserver.key
+        kubectl --namespace=kube-system create secret generic keystone-auth-certs --from-file=/etc/kubernetes/pki/apiserver.crt --from-file=/etc/kubernetes/pki/apiserver.key
         kubectl apply -f "/etc/kubernetes/addons"
+        unset KUBECONFIG
     path: /usr/local/bin/init.sh
     owner: root:root
     permissions: '0700'
