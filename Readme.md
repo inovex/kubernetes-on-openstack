@@ -8,7 +8,7 @@ Create a `main.tf` with the following content (obviously set the variables to yo
 
 ```hcl
 module "my_cluster" {
-  source = "git::https://github.com/johscheuer/kubernetes-on-openstack.git?ref=v0.0.2"
+  source = "git::https://github.com/johscheuer/kubernetes-on-openstack.git?ref=v0.0.4"
 
   auth_url          = "auth_url"
   cluster_name      = "cluster_name"
@@ -19,7 +19,7 @@ module "my_cluster" {
   user_domain_name  = "user_domain_name"
   project_id        = "project_id"
   image_name        = "image_name"
-  # kubernetes_version  = "1.13.2"
+  kubernetes_version  = "1.13.2"
 }
 
 resource "local_file" "kubeconfig" {
@@ -112,6 +112,10 @@ openstack --os-cloud <cloud> --os-project-id=<project-id> application credential
 ```
 
 more docs will follow when the feature is merged.
+
+# Notes
+
+If you want to use containerd in version 1.2.2 you will probably face this issue if you use images from [quay.io](https://quay.io) -> https://github.com/containerd/containerd/issues/2840
 
 # TODO
 
