@@ -129,3 +129,4 @@ If you want to use containerd in version 1.2.2 you will probably face this issue
 - [ ] Add extra disks to master and worker
 - [X] Use [containerd](https://containerd.io)
 - [X] Use Master as Jumphost
+- [ ] Add Variable for OpenStack Controller version

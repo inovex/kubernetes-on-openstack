@@ -342,71 +342,10 @@ write_files:
           name: cloud-controller-manager
           namespace: kube-system
         ---
-        apiVersion: rbac.authorization.k8s.io/v1
-        kind: ClusterRoleBinding
-        metadata:
-          name: cloud-controller-manager
-        roleRef:
-          apiGroup: rbac.authorization.k8s.io
-          kind: ClusterRole
-          name: system:kube-controller-manager
-        subjects:
-        - kind: ServiceAccount
-          name: cloud-controller-manager
-          namespace: kube-system
-        ---
         apiVersion: v1
         kind: ServiceAccount
         metadata:
           name: cloud-node-controller
-          namespace: kube-system
-        ---
-        apiVersion: rbac.authorization.k8s.io/v1
-        kind: ClusterRoleBinding
-        metadata:
-          name: cloud-node-controller
-        roleRef:
-          apiGroup: rbac.authorization.k8s.io
-          kind: ClusterRole
-          name: system:controller:node-controller
-        subjects:
-        - kind: ServiceAccount
-          name: cloud-node-controller
-          namespace: kube-system
-        ---
-        apiVersion: rbac.authorization.k8s.io/v1
-        kind: ClusterRole
-        metadata:
-          name: system:pvl-controller
-        rules:
-        - apiGroups:
-          - ""
-          resources:
-          - persistentvolumes
-          verbs:
-          - get
-          - list
-          - watch
-        - apiGroups:
-          - ""
-          resources:
-          - events
-          verbs:
-          - create
-          - patch
-          - update
-        ---
-        apiVersion: rbac.authorization.k8s.io/v1
-        kind: ClusterRoleBinding
-        metadata:
-          name: system:pvl-controller
-        roleRef:
-          apiGroup: rbac.authorization.k8s.io
-          kind: ClusterRole
-          name: system:pvl-controller
-        subjects:
-        - kind: ServiceAccount
-          name: pvl-controller
           namespace: kube-system
         ---
         apiVersion: apps/v1
@@ -498,6 +437,9 @@ write_files:
         kubectl apply -f "https://docs.projectcalico.org/v3.4/getting-started/kubernetes/installation/hosted/kubernetes-datastore/calico-networking/1.7/calico.yaml"
         # ToDo review
         kubectl --namespace=kube-system patch daemonset kube-proxy --type=json -p='[{"op": "add", "path": "/spec/template/spec/tolerations/0", "value": {"effect": "NoSchedule", "key": "node.cloudprovider.kubernetes.io/uninitialized", "value": "true"} }]'
+
+        kubectl --namespace=kube-system apply -f https://raw.githubusercontent.com/kubernetes/cloud-provider-openstack/1.13.1/cluster/addons/rbac/cloud-controller-manager-roles.yaml
+        kubectl --namespace=kube-system apply -f https://raw.githubusercontent.com/kubernetes/cloud-provider-openstack/1.13.1/cluster/addons/rbac/cloud-controller-manager-role-bindings.yaml
         kubectl --namespace=kube-system create secret generic cloud-config --from-file=/etc/kubernetes/pki/cloud-config
         kubectl --namespace=kube-system create secret generic keystone-auth-certs --from-file=/etc/kubernetes/pki/apiserver.crt --from-file=/etc/kubernetes/pki/apiserver.key
         kubectl apply -f "/etc/kubernetes/addons"
