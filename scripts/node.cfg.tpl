@@ -51,6 +51,7 @@ write_files:
         monitor-delay="10s"
         monitor-timeout="2000s"
         monitor-max-retries="3"
+        use-octavia=true
     path: /etc/kubernetes/pki/cloud-config
     owner: root:root
     permissions: '0600'

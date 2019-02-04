@@ -89,7 +89,7 @@ unset CLUSTER_NAME
 ## Test the OpenStack integration
 
 ```bash
-kubectl run nginx --image=nginx --port=80
+kubectl create deployment nginx --image=nginx
 kubectl expose deployment nginx --port=80 --type=LoadBalancer
 ```
 
@@ -105,7 +105,7 @@ ssh -J ubuntu@master ubuntu@node-0
 
 **Currently blocked**
 
-In order to create a shared Kubernetes cluster for multiple useres create we can use [application credentials](https://docs.openstack.org/python-openstackclient/rocky/cli/command-objects/application-credentials.html)
+In order to create a shared Kubernetes cluster for multiple users we can use [application credentials](https://docs.openstack.org/python-openstackclient/rocky/cli/command-objects/application-credentials.html)
 
 ```bash
 openstack --os-cloud <cloud> --os-project-id=<project-id> application credential create --restricted kubernetes
