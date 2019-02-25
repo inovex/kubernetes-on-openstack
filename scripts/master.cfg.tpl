@@ -836,13 +836,13 @@ write_files:
         set -eu
 
         # Setup disk, currently this is broken in cloud-init :(
-        #sgdisk -n 1:0:0 /dev/sdb
-        #udevadm settle
-        # blockdev --rereadpt /dev/sdb
-        # udevadm settle
-        # mkfs.ext4 /dev/sdb1
-        # # mount the newly created partion
-        # mount -a
+        sgdisk -n 1:0:0 /dev/sdb
+        udevadm settle
+        blockdev --rereadpt /dev/sdb
+        udevadm settle
+        yes | mkfs.ext4 -q /dev/sdb1
+        # mount the newly created partion
+        mount -a
 
         # Install Containerd and load all required modules
         curl -sLo /tmp/containerd.tar.gz "https://storage.googleapis.com/cri-containerd-release/cri-containerd-${containerd_version}.linux-amd64.tar.gz"
@@ -931,7 +931,7 @@ runcmd:
 
 # https://cloudinit.readthedocs.io/en/latest/topics/examples.html#adjust-mount-points-mounted
 mounts:
- - [ sdb1, /var/lib/containerd, auto ]
+ - [ /dev/sdb1, /var/lib/containerd, auto ]
 #  - [ sdc, /var/lib/kubelet/ ]
 #  - [ xvdh, /opt/data, "auto", "defaults,nofail", "0", "0" ]
 #  - [ dd, /dev/zero ]
