@@ -113,6 +113,7 @@ write_files:
         apiServer:
           certSANs:
           - ${external_ip}
+          - REPLACE_LOCAL_IP
           extraArgs:
             authentication-token-webhook-config-file: /etc/kubernetes/pki/webhook.kubeconfig
             cloud-config: /etc/kubernetes/pki/cloud-config
@@ -388,7 +389,7 @@ write_files:
                   args:
                     - ./bin/openstack-cloud-controller-manager
                     - --v=2
-                    - --cloud-config=/etc/cloud/cloud-config
+                    - --cloud-config=/etc/cloud/cloud.conf
                     - --cloud-provider=openstack
                     - --use-service-account-credentials=true
                     - --bind-address=127.0.0.1
@@ -417,6 +418,16 @@ write_files:
         #!/bin/bash
         set -eu
 
+        # Setup disk, currently this is broken in cloud-init :(
+        sgdisk -n 1:0:0 /dev/sdb
+        udevadm settle
+        blockdev --rereadpt /dev/sdb
+        udevadm settle
+        mkfs.ext4 /dev/sdb1
+        # mount the newly created partion
+        mount -a
+
+        # Install Containerd and load all required modules
         curl -sLo /tmp/containerd.tar.gz "https://storage.googleapis.com/cri-containerd-release/cri-containerd-${containerd_version}.linux-amd64.tar.gz"
         tar -C / -xzf /tmp/containerd.tar.gz
         systemctl start containerd
@@ -430,8 +441,12 @@ write_files:
         echo '1' > /proc/sys/net/ipv4/ip_forward
         echo '1' > /proc/sys/net/bridge/bridge-nf-call-iptables
         # Set local IP address
+        # https://cloudinit.readthedocs.io/en/latest/topics/instancedata.html#using-instance-data
         export LOCAL_IP=$(jq -r '.ds.ec2_metadata."local-ipv4"' /run/cloud-init/instance-data.json)
         sed -i "s/^  advertiseAddress: .*$/  advertiseAddress: $${LOCAL_IP}/" /etc/kubernetes/kubeadm.yaml
+        sed -i "s/REPLACE_LOCAL_IP/$${LOCAL_IP}/" /etc/kubernetes/kubeadm.yaml
+
+        unset REPLACE_LOCAL_IP
         unset LOCAL_IP
         kubeadm init --config /etc/kubernetes/kubeadm.yaml --skip-token-print
         mkdir -p /root/.kube
@@ -443,14 +458,21 @@ write_files:
         export KUBECONFIG=/etc/kubernetes/admin.conf
         # a bug prevents downloading from quay.io -> open: could not fetch content descriptor -> https://github.com/containerd/containerd/issues/2840 so currently we limited and stuck with the old version
         kubectl apply -f "https://docs.projectcalico.org/v3.4/getting-started/kubernetes/installation/hosted/kubernetes-datastore/calico-networking/1.7/calico.yaml"
-        # ToDo review
         kubectl --namespace=kube-system patch daemonset kube-proxy --type=json -p='[{"op": "add", "path": "/spec/template/spec/tolerations/0", "value": {"effect": "NoSchedule", "key": "node.cloudprovider.kubernetes.io/uninitialized", "value": "true"} }]'
+        kubectl --namespace=kube-system patch deployment coredns --type=json -p='[{"op": "add", "path": "/spec/template/spec/tolerations/0", "value": {"effect": "NoSchedule", "key": "node.cloudprovider.kubernetes.io/uninitialized", "value": "true"} }]'
+
 
         kubectl --namespace=kube-system apply -f https://raw.githubusercontent.com/kubernetes/cloud-provider-openstack/1.13.1/cluster/addons/rbac/cloud-controller-manager-roles.yaml
         kubectl --namespace=kube-system apply -f https://raw.githubusercontent.com/kubernetes/cloud-provider-openstack/1.13.1/cluster/addons/rbac/cloud-controller-manager-role-bindings.yaml
-        kubectl --namespace=kube-system create secret generic cloud-config --from-file=/etc/kubernetes/pki/cloud-config
+        kubectl --namespace=kube-system create secret generic cloud-config --from-file=cloud.conf=/etc/kubernetes/pki/cloud-config
         kubectl --namespace=kube-system create secret generic keystone-auth-certs --from-file=/etc/kubernetes/pki/apiserver.crt --from-file=/etc/kubernetes/pki/apiserver.key
         kubectl apply -f "/etc/kubernetes/addons"
+
+        # Install Metrics Server
+        #git clone -b v0.3.1 -- https://github.com/kubernetes-incubator/metrics-server.git
+        #kubectl --namespace=kube-system apply -f metrics-server/deploy/1.8+/
+        #rm -rf metrics-server
+
         unset KUBECONFIG
     path: /usr/local/bin/init.sh
     owner: root:root
@@ -476,3 +498,24 @@ packages:
 # The addon deployment can be moved out once we have a stable endpoint
 runcmd:
   - [ /usr/local/bin/init.sh ]
+
+# Does currently not work :( --> has a race condition
+# Disk and FS setup
+# disk_setup:
+#    sdb:
+#        table_type: 'mbr'
+#        layout: True
+#        overwrite: False
+
+# fs_setup:
+#    - label: None,
+#      filesystem: ext4
+#      device: sdb
+#      partition: auto
+
+# https://cloudinit.readthedocs.io/en/latest/topics/examples.html#adjust-mount-points-mounted
+mounts:
+ - [ sdb1, /var/lib/containerd, auto ]
+#  - [ sdc, /var/lib/kubelet/ ]
+#  - [ xvdh, /opt/data, "auto", "defaults,nofail", "0", "0" ]
+#  - [ dd, /dev/zero ]
