@@ -40,6 +40,7 @@ data "template_file" "master_init" {
     project_id          = "${var.project_id}"
     subnet_id           = "${openstack_networking_subnet_v2.cluster_subnet.id}"
     external_ip         = "${openstack_networking_floatingip_v2.public_ip.address}"
+    internal_ip         = "${openstack_networking_port_v2.master.all_fixed_ips.0}"
     kubernetes_version  = "${var.kubernetes_version}"
     pod_subnet          = "${var.pod_subnet}"
     public_network_id   = "${data.openstack_networking_network_v2.public.id}"
@@ -61,6 +62,15 @@ data "template_cloudinit_config" "master_config" {
   }
 }
 
+resource "openstack_networking_port_v2" "master" {
+  network_id     = "${openstack_networking_network_v2.private.id}"
+  admin_state_up = "true"
+
+  fixed_ip {
+    subnet_id  = "${openstack_networking_subnet_v2.cluster_subnet.id}"
+  }
+}
+
 resource "openstack_compute_instance_v2" "master" {
   name            = "${var.cluster_name}-master"
   image_id        = "${data.openstack_images_image_v2.ubuntu.id}"
@@ -75,7 +85,7 @@ resource "openstack_compute_instance_v2" "master" {
   }
 
   network {
-    uuid = "${openstack_networking_network_v2.private.id}"
+    port = "${openstack_networking_port_v2.master.id}"
   }
 
   block_device {

@@ -94,8 +94,7 @@ write_files:
           - signing
           - authentication
         localAPIEndpoint:
-          # This will be replaced by sed
-          advertiseAddress: ${external_ip}
+          advertiseAddress: ${internal_ip}
           bindPort: 6443
         nodeRegistration:
           criSocket: /run/containerd/containerd.sock
@@ -113,7 +112,7 @@ write_files:
         apiServer:
           certSANs:
           - ${external_ip}
-          - REPLACE_LOCAL_IP
+          - ${internal_ip}
           extraArgs:
             authentication-token-webhook-config-file: /etc/kubernetes/pki/webhook.kubeconfig
             cloud-config: /etc/kubernetes/pki/cloud-config
@@ -857,14 +856,6 @@ write_files:
         modprobe nf_conntrack_ipv4
         echo '1' > /proc/sys/net/ipv4/ip_forward
         echo '1' > /proc/sys/net/bridge/bridge-nf-call-iptables
-        # Set local IP address
-        # https://cloudinit.readthedocs.io/en/latest/topics/instancedata.html#using-instance-data
-        export LOCAL_IP=$(jq -r '.ds.ec2_metadata."local-ipv4"' /run/cloud-init/instance-data.json)
-        sed -i "s/^  advertiseAddress: .*$/  advertiseAddress: $${LOCAL_IP}/" /etc/kubernetes/kubeadm.yaml
-        sed -i "s/REPLACE_LOCAL_IP/$${LOCAL_IP}/" /etc/kubernetes/kubeadm.yaml
-
-        unset REPLACE_LOCAL_IP
-        unset LOCAL_IP
         kubeadm init --config /etc/kubernetes/kubeadm.yaml --skip-token-print
         mkdir -p /root/.kube
         cp -i /etc/kubernetes/admin.conf /root/.kube/config
