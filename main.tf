@@ -1,7 +1,5 @@
 # Configure the OpenStack Provider
 provider "openstack" {
-  version = "~> v1.6.0"
-
   user_name        = "${var.username}"
   domain_name      = "${var.domain_name}"
   tenant_name      = "${var.tenant_name}"
