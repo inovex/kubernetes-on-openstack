@@ -915,19 +915,20 @@ packages:
 runcmd:
   - [ /usr/local/bin/init.sh ]
 
-# Does currently not work :( --> has a race condition
-# Disk and FS setup
-# disk_setup:
-#    sdb:
-#        table_type: 'mbr'
-#        layout: True
-#        overwrite: False
+bootcmd:
+  - sh -c 'while [ ! -b /dev/sdb ]; do sleep 1; done'
 
-# fs_setup:
-#    - label: None,
-#      filesystem: ext4
-#      device: sdb
-#      partition: auto
+disk_setup:
+  sdb:
+    table_type: 'mbr'
+    layout: True
+    overwrite: False
+
+fs_setup:
+  - label: None,
+    filesystem: ext4
+    device: sdb
+    partition: auto
 
 # https://cloudinit.readthedocs.io/en/latest/topics/examples.html#adjust-mount-points-mounted
 mounts:
