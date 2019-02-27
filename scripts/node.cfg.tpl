@@ -52,6 +52,13 @@ write_files:
         monitor-timeout="2000s"
         monitor-max-retries="3"
         use-octavia=true
+
+        [BlockStorage]
+        bs-version=v2
+
+        [Networking]
+        public-network-name=public
+        ipv6-support-disabled=false
     path: /etc/kubernetes/pki/cloud-config
     owner: root:root
     permissions: '0600'
@@ -69,7 +76,11 @@ write_files:
         nodeRegistration:
           criSocket: /run/containerd/containerd.sock
           kubeletExtraArgs:
-            "node-labels": "node-role.kubernetes.io/node=\"\""
+            node-labels: "node-role.kubernetes.io/node=\"\""
+            cloud-config: /etc/kubernetes/pki/cloud-config
+            cloud-provider: external
+            container-runtime: remote
+            container-runtime-endpoint: unix:///run/containerd/containerd.sock
     path: /etc/kubernetes/kubeadm.yaml
     owner: root:root
     permissions: '0600'
