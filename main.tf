@@ -21,8 +21,13 @@ resource "openstack_compute_keypair_v2" "basic_keypair" {
 }
 
 data "openstack_images_image_v2" "ubuntu" {
-  name        = "${var.image_name}"
+  visibility  = "public"
   most_recent = true
+
+  properties {
+    os_distro  = "ubuntu"
+    os_version = "18.04"
+  }
 }
 
 data "template_file" "master_init" {
