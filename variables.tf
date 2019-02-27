@@ -77,3 +77,13 @@ variable bootstrap_token {
 variable containerd_version {
   type = "string"
 }
+
+variable cluster_network_node_cidr {
+  type    = "string"
+  default = "172.16.0.0/16"
+}
+
+variable "cluster_network_router_id" {
+  description = "The cluster private node network will be attached to this router"
+  type        = "string"
+}

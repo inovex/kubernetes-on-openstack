@@ -7,19 +7,35 @@ Running Kubernetes on OpenStack with `kubeadm` and `terraform`
 Create a `main.tf` with the following content (obviously set the variables to your real values):
 
 ```hcl
+
+data "openstack_networking_network_v2" "public" {
+  name = "public"
+}
+
+
+resource "openstack_networking_router_v2" "router" {
+  name                = "my_router"
+  admin_state_up      = "true"
+  external_network_id = "${data.openstack_networking_network_v2.public.id}"
+}
+
+
 module "my_cluster" {
   source = "git::https://github.com/johscheuer/kubernetes-on-openstack.git?ref=v0.0.4"
 
-  auth_url          = "auth_url"
-  cluster_name      = "cluster_name"
-  username          = "username"
-  password          = "password"
-  domain_name       = "domain_name"
-  tenant_name       = "tenant_name"
-  user_domain_name  = "user_domain_name"
-  project_id        = "project_id"
-  image_name        = "image_name"
-  kubernetes_version  = "1.13.2"
+  auth_url                  = "auth_url"
+  cluster_name              = "cluster_name"
+  username                  = "username"
+  password                  = "password"
+  domain_name               = "domain_name"
+  tenant_name               = "tenant_name"
+  user_domain_name          = "user_domain_name"
+  project_id                = "project_id"
+  image_name                = "image_name"
+  
+  kubernetes_version        = "1.13.2"
+  containerd_version        = "1.2.3"
+  cluster_network_router_id = "${openstack_networking_router_v2.router.id}"
 }
 
 resource "local_file" "kubeconfig" {

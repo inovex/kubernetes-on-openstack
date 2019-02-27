@@ -7,7 +7,7 @@ resource "openstack_networking_network_v2" "private" {
 resource "openstack_networking_subnet_v2" "cluster_subnet" {
   name       = "${var.cluster_name}_subnet"
   network_id = "${openstack_networking_network_v2.private.id}"
-  cidr       = "172.16.0.0/16"
+  cidr       = "${var.cluster_network_node_cidr}"
   ip_version = 4
 }
 
@@ -19,14 +19,8 @@ data "openstack_networking_secgroup_v2" "default" {
   name = "default"
 }
 
-resource "openstack_networking_router_v2" "cluster_router" {
-  name                = "${var.cluster_name}_router"
-  admin_state_up      = "true"
-  external_network_id = "${data.openstack_networking_network_v2.public.id}"
-}
-
 resource "openstack_networking_router_interface_v2" "cluster_subnet_interface" {
-  router_id = "${openstack_networking_router_v2.cluster_router.id}"
+  router_id = "${var.cluster_network_router_id}"
   subnet_id = "${openstack_networking_subnet_v2.cluster_subnet.id}"
 }
 

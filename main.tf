@@ -73,7 +73,7 @@ resource "openstack_compute_instance_v2" "master" {
     uuid = "${openstack_networking_network_v2.private.id}"
   }
 
-    block_device {
+  block_device {
     uuid                  = "${data.openstack_images_image_v2.ubuntu.id}"
     source_type           = "image"
     destination_type      = "local"
