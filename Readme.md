@@ -28,7 +28,6 @@ module "my_cluster" {
   tenant_name               = "tenant_name"
   user_domain_name          = "user_domain_name"
   project_id                = "project_id"
-  image_name                = "image_name"
   kubernetes_version        = "1.13.3"
   containerd_version        = "1.2.4"
   cluster_network_router_id = "${openstack_networking_router_v2.router.id}"
@@ -37,6 +36,10 @@ module "my_cluster" {
 resource "local_file" "kubeconfig" {
   content  = "${module.my_cluster.kubeconfig}"
   filename = "${path.module}/kubeconfig"
+}
+
+output "master_ip" {
+  value = "${module.my_cluster.master_ip}"
 }
 ```
 
