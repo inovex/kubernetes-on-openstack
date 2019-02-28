@@ -1,12 +1,6 @@
 # Configure the OpenStack Provider
 provider "openstack" {
-  user_name        = "${var.username}"
-  domain_name      = "${var.domain_name}"
-  tenant_name      = "${var.tenant_name}"
-  user_domain_name = "${var.user_domain_name != "" ? var.user_domain_name : var.domain_name}"
-  password         = "${var.password}"
-  auth_url         = "${var.auth_url}"
-  region           = "${var.region}"
+  version = ">= v1.6.0"
 }
 
 provider "local" {
@@ -65,7 +59,7 @@ resource "openstack_networking_port_v2" "master" {
   admin_state_up = "true"
 
   fixed_ip {
-    subnet_id  = "${openstack_networking_subnet_v2.cluster_subnet.id}"
+    subnet_id = "${openstack_networking_subnet_v2.cluster_subnet.id}"
   }
 }
 
@@ -74,7 +68,7 @@ resource "openstack_compute_instance_v2" "master" {
   image_id        = "${data.openstack_images_image_v2.ubuntu.id}"
   flavor_name     = "${var.flavor}"
   key_pair        = "${openstack_compute_keypair_v2.basic_keypair.id}"
-  security_groups = ["${openstack_networking_secgroup_v2.secgroup_master.id}", "${openstack_networking_secgroup_v2.secgroup_node.id}"]
+  security_groups = ["${openstack_networking_secgroup_v2.secgroup_master.name}", "${openstack_networking_secgroup_v2.secgroup_node.name}"]
   user_data       = "${data.template_cloudinit_config.master_config.rendered}"
 
   metadata {
@@ -97,7 +91,7 @@ resource "openstack_compute_instance_v2" "master" {
   block_device {
     source_type           = "blank"
     destination_type      = "volume"
-    volume_size           = 200
+    volume_size           = "${var.master_data_volume_size}"
     boot_index            = 1
     delete_on_termination = true
   }
@@ -139,7 +133,7 @@ resource "openstack_compute_instance_v2" "node" {
   image_id        = "${data.openstack_images_image_v2.ubuntu.id}"
   flavor_name     = "${var.flavor}"
   key_pair        = "${openstack_compute_keypair_v2.basic_keypair.id}"
-  security_groups = ["${openstack_networking_secgroup_v2.secgroup_node.id}"]
+  security_groups = ["${openstack_networking_secgroup_v2.secgroup_node.name}"]
   user_data       = "${data.template_cloudinit_config.node_config.rendered}"
 
   metadata {

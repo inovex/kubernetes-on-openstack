@@ -75,6 +75,7 @@ curl -sLO "https://github.com/kubernetes/cloud-provider-openstack/releases/downl
 tar xfz cloud-provider-openstack-${VERSION}-${OS}-amd64.tar.gz
 rm cloud-provider-openstack-${VERSION}-${OS}-amd64.tar.gz
 
+mkdir $(pwd)/bin
 cp ${OS}-amd64/client-keystone-auth $(pwd)/bin/
 rm -rf ${OS}-amd64
 ```
