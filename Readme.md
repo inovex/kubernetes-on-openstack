@@ -18,7 +18,7 @@ resource "openstack_networking_router_v2" "router" {
 }
 
 module "my_cluster" {
-  source = "git::https://github.com/johscheuer/kubernetes-on-openstack.git?ref=v0.0.4"
+  source = "git::https://github.com/inovex/kubernetes-on-openstack.git?ref=v0.0.4"
 
   auth_url                  = "auth_url"
   cluster_name              = "cluster_name"
