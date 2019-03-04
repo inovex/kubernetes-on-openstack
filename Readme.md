@@ -18,7 +18,7 @@ resource "openstack_networking_router_v2" "router" {
 }
 
 module "my_cluster" {
-  source = "git::https://github.com/inovex/kubernetes-on-openstack.git?ref=v0.0.4"
+  source = "git::https://github.com/inovex/kubernetes-on-openstack.git?ref=v1.0.0"
 
   auth_url                  = "auth_url"
   cluster_name              = "cluster_name"
@@ -133,16 +133,3 @@ more docs will follow when the feature is merged.
 
 If you want to use containerd in version 1.2.2 you will probably face this issue if you use images from [quay.io](https://quay.io) -> https://github.com/containerd/containerd/issues/2840
 
-# TODO
-
-- [x] Adjust Docs (for module + kubeconfig)
-- [ ] image (architecture)
-- [ ] LB for API server
-- [x] OpenStack integration (testing)
-- [x] Authentication over OpenStack (keystone)
-- [x] Create a module
-- [ ] HA control plane (<https://kubernetes.io/docs/setup/independent/high-availability>)
-- [ ] Add extra disks to master and worker
-- [X] Use [containerd](https://containerd.io)
-- [X] Use Master as Jumphost
-- [ ] Add Variable for OpenStack Controller version
