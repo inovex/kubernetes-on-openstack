@@ -99,6 +99,26 @@ packages:
   - ipset
   - libseccomp2
 
+bootcmd:
+  - sh -c 'while [ ! -b /dev/sdb ]; do sleep 1; done'
+
+disk_setup:
+  /dev/sdb:
+    table_type: 'mbr'
+    layout:
+      - [100, 83]
+    overwrite: true
+
+fs_setup:
+  - label: None
+    filesystem: 'ext4'
+    device: '/dev/sdb1'
+    partition: 'auto'
+
+# https://cloudinit.readthedocs.io/en/latest/topics/examples.html#adjust-mount-points-mounted
+mounts:
+ - [ /dev/sdb1, /var/lib/containerd, auto ]
+
 runcmd:
   - [ curl, -sLo, /tmp/containerd.tar.gz, "https://storage.googleapis.com/cri-containerd-release/cri-containerd-${containerd_version}.linux-amd64.tar.gz" ]
   - [ tar, -C, /, -xzf, /tmp/containerd.tar.gz ]

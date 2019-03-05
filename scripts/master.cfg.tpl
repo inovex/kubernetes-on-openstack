@@ -834,15 +834,6 @@ write_files:
         #!/bin/bash
         set -eu
 
-        # Setup disk, currently this is broken in cloud-init :(
-        sgdisk -n 1:0:0 /dev/sdb
-        udevadm settle
-        blockdev --rereadpt /dev/sdb
-        udevadm settle
-        yes | mkfs.ext4 -q /dev/sdb1
-        # mount the newly created partion
-        mount -a
-
         # Install Containerd and load all required modules
         curl -sLo /tmp/containerd.tar.gz "https://storage.googleapis.com/cri-containerd-release/cri-containerd-${containerd_version}.linux-amd64.tar.gz"
         tar -C / -xzf /tmp/containerd.tar.gz
@@ -910,16 +901,17 @@ bootcmd:
   - sh -c 'while [ ! -b /dev/sdb ]; do sleep 1; done'
 
 disk_setup:
-  sdb:
+  /dev/sdb:
     table_type: 'mbr'
-    layout: True
-    overwrite: False
+    layout:
+      - [100, 83]
+    overwrite: true
 
 fs_setup:
-  - label: None,
-    filesystem: ext4
-    device: sdb
-    partition: auto
+  - label: None
+    filesystem: 'ext4'
+    device: '/dev/sdb1'
+    partition: 'auto'
 
 # https://cloudinit.readthedocs.io/en/latest/topics/examples.html#adjust-mount-points-mounted
 mounts:
