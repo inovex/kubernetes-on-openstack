@@ -12,7 +12,7 @@ resource "openstack_networking_subnet_v2" "cluster_subnet" {
 }
 
 data "openstack_networking_network_v2" "public" {
-  name = "public"
+  name = "${var.public_network_name}"
 }
 
 data "openstack_networking_secgroup_v2" "default" {

@@ -13,7 +13,7 @@ resource "openstack_compute_keypair_v2" "basic_keypair" {
 }
 
 data "openstack_images_image_v2" "ubuntu" {
-  visibility  = "public"
+  visibility  = "${var.image_visibility}"
   most_recent = true
 
   properties {

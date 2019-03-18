@@ -113,3 +113,15 @@ variable "node_data_volume_size" {
   type        = "string"
   default     = "15"
 }
+
+variable "public_network_name" {
+  description = "The name of your available public network"
+  type        = "string"
+  default     = "public"
+}
+
+variable "image_visibility" {
+  description = "Visiblity of the used Image"
+  type        = "string"
+  default     = "public"
+}
