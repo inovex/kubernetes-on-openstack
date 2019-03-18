@@ -1,71 +1,20 @@
-# Terraform
+# Kubernetes on OpenStack
 
-Running Kubernetes on OpenStack with `kubeadm` and `terraform`
+Deploying a Kubernetes cluster on OpenStack with `kubeadm` and `terraform`.
 
 ## Using the module
 
-Create a `main.tf` with the following content (obviously set the variables to your real values):
+After cloning or downloading the repository, follow these steps to get your cluster up and running.
 
-```hcl
-data "openstack_networking_network_v2" "public" {
-  name = "public"
-}
+### Customize settings
 
-resource "openstack_networking_router_v2" "router" {
-  name                = "my_router"
-  admin_state_up      = "true"
-  external_network_id = "${data.openstack_networking_network_v2.public.id}"
-}
+Take a look at the example provided in the `example` folder. It contains three files: `main.tf`, `provider.tf`, and `variables.tf`. Have a look at `main.tf`. Customize settings like `master_data_volume_size` or `node_data_volume_size` to your needs, you might have to stay below quotas set by your OpenStack admin. Pick an instance flavor that has at least two vCPUs, otherwise kubeadm will fail during its pre-flight check.
 
-module "my_cluster" {
-  source = "git::https://github.com/inovex/kubernetes-on-openstack.git?ref=v1.0.0"
+We assume `example` to be your working directory for all following commands.
 
-  auth_url                  = "auth_url"
-  cluster_name              = "cluster_name"
-  username                  = "username"
-  password                  = "password"
-  domain_name               = "domain_name"
-  tenant_name               = "tenant_name"
-  user_domain_name          = "user_domain_name"
-  project_id                = "project_id"
-  kubernetes_version        = "1.13.3"
-  containerd_version        = "1.2.4"
-  cluster_network_router_id = "${openstack_networking_router_v2.router.id}"
-}
+### Install keystone auth plugin
 
-resource "local_file" "kubeconfig" {
-  content  = "${module.my_cluster.kubeconfig}"
-  filename = "${path.module}/kubeconfig"
-}
-
-output "master_ip" {
-  value = "${module.my_cluster.master_ip}"
-}
-```
-
-Fetch the module, initialize the folder and run `plan`:
-
-```bash
-terraform get --update
-terraform init
-terraform plan
-```
-
-Now you can create the cluster:
-
-```bash
-terraform apply
-```
-
-## Authentication
-
-The Kubernetes cluster will use Keystone authentication (over a WebHook). For more information have a look [here](https://github.com/kubernetes/cloud-provider-openstack/blob/master/docs/using-keystone-webhook-authenticator-and-authorizer.md). After running `terraform apply` there will be a kubeconfig file configured for the newly created cluster. The `--insecure-skip-tls-verify=true` in the kubeconfig fils is needed because we use the auto-generated certificates of kubeadm. There are possible workarounds to remove the flag (e.g. fetch the ca from the Kubernetes master).
-
-Keep in mind: As a default all users in the (OpenStack) project will have `cluster-admin` rights.
-
-### Install the keystone auth plugin
-
-For mor details look at the official [docs](https://github.com/kubernetes/cloud-provider-openstack/blob/master/docs/using-keystone-webhook-authenticator-and-authorizer.md#new-kubectl-clients-from-v1110-and-later) or just use the quick start:
+The Kubernetes cluster will use Keystone authentication (over a WebHook). For mor details look at the official [docs](https://github.com/kubernetes/cloud-provider-openstack/blob/master/docs/using-keystone-webhook-authenticator-and-authorizer.md#new-kubectl-clients-from-v1110-and-later) or just use the quick start:
 
 ```bash
 VERSION=1.13.1
@@ -79,7 +28,77 @@ cp ${OS}-amd64/client-keystone-auth $(pwd)/bin/
 rm -rf ${OS}-amd64
 ```
 
-Now you can use the kubeconfig with `kubectl --kubeconfig kubeconfig get nodes` or set `export KUBECONFIG="$(pwd)/kubeconfig"` to interact with the cluster.
+### Reference the module correctly
+
+As long as you keep the `example` folder inside the module repository, the reference `source = "../"` in the `main.tf` works. For a cleaner setup, you can also extract the example folder and put it somewhere else, just make sure you change the source setting accordingly. You can also reference the GitHub repository itself like so:
+
+```hcl
+   module "my_cluster" {
+     source = "git::https://github.com/inovex/kubernetes-on-openstack.git?ref=v1.0.0"
+
+     # ...
+   }
+```
+
+If you do it that way, make sure to
+
+```bash
+terraform get --update
+```
+
+before running any other terraform commands.
+
+### Set your credentials
+
+There a multiple different ways to authenticate with your OpenStack provider that all have their pros and cons. If you want to know more, check out this [blog post about OpenStack credential handling for terraform](https://www.inovex.de/blog/managing-secrets-openstack-terraform/). You can choose any of them, as long as you make sure the terraform variables `auth_url`, `username` and `password` are set explicitly as terraform variables. This is required as they are passed down to the Openstack Cloud Controller running inside the provisioned Kubernetes. Those should be dedicated service account credentials in a team setup. The easiest way to get started is to create a `terraform.tfvars` file in the `example` folder. If you start working in a team setup, you might want to check out the method using `clouds-public.yaml`, `clouds.yaml` and `secure.yaml` files in the aforementioned blog post.
+
+### Execute terraform
+
+Initialize the folder and run `plan`:
+
+```bash
+terraform init
+terraform plan
+```
+
+Now you can create the cluster by running
+
+```bash
+terraform apply
+```
+
+It takes some time for the nodes to be fully configured. After running `terraform apply` there will be a kubeconfig file configured for the newly created cluster. The `--insecure-skip-tls-verify=true` in there is needed because we use the auto-generated certificates of kubeadm. There are possible workarounds to remove the flag (e.g. fetch the CA from the Kubernetes master, see below). Keep in mind: As a default all users in the (OpenStack) project will have `cluster-admin` rights. You can access the cluster via
+
+```bash
+kubectl --kubeconfig kubeconfig get nodes
+```
+
+It is also possible to set the `KUBECONFIG` environment variable to reference the location of the `kubeconfig` file created by terraform  or to copy its contents to your `.kube` settings but keep in mind that the kubeconfig changes often because of Floating IPs.
+
+### Test the OpenStack integration
+
+To create a simple deployment, run
+
+```bash
+kubectl --kubeconfig kubeconfig create deployment nginx --image=nginx
+kubectl --kubeconfig kubeconfig expose deployment nginx --port=80
+```
+
+### Access nodes
+
+In the current setup the master node can be reached by
+
+```bash
+ssh ubuntu@<ip>
+```
+
+and can also be used as jumphost to access the worker nodes:
+
+```bash
+ssh -J ubuntu@<ip> ubuntu@node-0
+```
+
+## Fetch cluster CA
 
 In order to prevent to use `insecure-skip-tls-verify=true` you can fetch the cluster CA:
 
@@ -102,24 +121,9 @@ unset CLUSTER_NAME
 - [cloud-provider-openstack](https://github.com/kubernetes/cloud-provider-openstack)
 - [calico](https://docs.projectcalico.org/v3.4/getting-started/kubernetes/installation/calico#installing-with-the-kubernetes-api-datastore50-nodes-or-less)
 
-## Test the OpenStack integration
-
-```bash
-kubectl create deployment nginx --image=nginx
-kubectl expose deployment nginx --port=80
-```
-
-## Access nodes
-
-In the current setup the master node can be used as jumphost:
-
-```bash
-ssh -J ubuntu@master ubuntu@node-0
-```
-
 ## Shared environments
 
-**Currently blocked**
+### Currently blocked
 
 In order to create a shared Kubernetes cluster for multiple users we can use [application credentials](https://docs.openstack.org/python-openstackclient/rocky/cli/command-objects/application-credentials.html)
 
@@ -129,7 +133,6 @@ openstack --os-cloud <cloud> --os-project-id=<project-id> application credential
 
 more docs will follow when the feature is merged.
 
-# Notes
+## Notes
 
-If you want to use containerd in version 1.2.2 you will probably face this issue if you use images from [quay.io](https://quay.io) -> https://github.com/containerd/containerd/issues/2840
-
+If you want to use containerd in version 1.2.2 you will probably face [this containerd issue](https://github.com/containerd/containerd/issues/2840) if you use images from [quay.io](https://quay.io)
