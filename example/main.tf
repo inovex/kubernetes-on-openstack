@@ -31,6 +31,7 @@ module "my_cluster" {
   project_id = "${data.openstack_identity_auth_scope_v3.scope.project_id}"
 
   kubernetes_version        = "1.13.2"
+  kubernetes_cni_version    = "0.6.0"
   containerd_version        = "1.2.4"
   cluster_network_router_id = "${openstack_networking_router_v2.router.id}"
   node_count                = "2"
