@@ -91,6 +91,7 @@ packages:
   - btrfs-tools
   - util-linux
   - nfs-common
+  - [kubernetes-cni, "${kubernetes_cni_version}-00"]
   - [kubelet, "${kubernetes_version}-00"]
   - [kubeadm, "${kubernetes_version}-00"]
   - ipvsadm

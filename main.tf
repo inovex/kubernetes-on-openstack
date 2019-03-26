@@ -26,19 +26,20 @@ data "template_file" "master_init" {
   template = "${file("${path.module}/scripts/master.cfg.tpl")}"
 
   vars {
-    bootstrap_token     = "${var.bootstrap_token != "" ? var.bootstrap_token : format("%s.%s", random_string.firstpart.result, random_string.secondpart.result)}"
-    username            = "${var.username}"
-    password            = "${var.password}"
-    project_id          = "${var.project_id}"
-    subnet_id           = "${openstack_networking_subnet_v2.cluster_subnet.id}"
-    external_ip         = "${openstack_networking_floatingip_v2.public_ip.address}"
-    internal_ip         = "${openstack_networking_port_v2.master.all_fixed_ips.0}"
-    kubernetes_version  = "${var.kubernetes_version}"
-    pod_subnet          = "${var.pod_subnet}"
-    public_network_id   = "${data.openstack_networking_network_v2.public.id}"
-    auth_url            = "${var.auth_url}"
-    domain_name         = "${var.domain_name}"
-    containerd_version  = "${var.containerd_version}"
+    bootstrap_token         = "${var.bootstrap_token != "" ? var.bootstrap_token : format("%s.%s", random_string.firstpart.result, random_string.secondpart.result)}"
+    username                = "${var.username}"
+    password                = "${var.password}"
+    project_id              = "${var.project_id}"
+    subnet_id               = "${openstack_networking_subnet_v2.cluster_subnet.id}"
+    external_ip             = "${openstack_networking_floatingip_v2.public_ip.address}"
+    internal_ip             = "${openstack_networking_port_v2.master.all_fixed_ips.0}"
+    kubernetes_version      = "${var.kubernetes_version}"
+    kubernetes_cni_version  = "${var.kubernetes_cni_version}"
+    pod_subnet              = "${var.pod_subnet}"
+    public_network_id       = "${data.openstack_networking_network_v2.public.id}"
+    auth_url                = "${var.auth_url}"
+    domain_name             = "${var.domain_name}"
+    containerd_version      = "${var.containerd_version}"   
   }
 }
 
@@ -100,17 +101,18 @@ data "template_file" "node_init" {
   template = "${file("${path.module}/scripts/node.cfg.tpl")}"
 
   vars {
-    bootstrap_token     = "${var.bootstrap_token != "" ? var.bootstrap_token : format("%s.%s", random_string.firstpart.result, random_string.secondpart.result)}"
-    username            = "${var.username}"
-    password            = "${var.password}"
-    project_id          = "${var.project_id}"
-    subnet_id           = "${openstack_networking_subnet_v2.cluster_subnet.id}"
-    api_server          = "${openstack_compute_instance_v2.master.access_ip_v4}"
-    public_network_id   = "${data.openstack_networking_network_v2.public.id}"
-    auth_url            = "${var.auth_url}"
-    domain_name         = "${var.domain_name}"
-    containerd_version  = "${var.containerd_version}"
-    kubernetes_version  = "${var.kubernetes_version}"
+    bootstrap_token         = "${var.bootstrap_token != "" ? var.bootstrap_token : format("%s.%s", random_string.firstpart.result, random_string.secondpart.result)}"
+    username                = "${var.username}"
+    password                = "${var.password}"
+    project_id              = "${var.project_id}"
+    subnet_id               = "${openstack_networking_subnet_v2.cluster_subnet.id}"
+    api_server              = "${openstack_compute_instance_v2.master.access_ip_v4}"
+    public_network_id       = "${data.openstack_networking_network_v2.public.id}"
+    auth_url                = "${var.auth_url}"
+    domain_name             = "${var.domain_name}"
+    containerd_version      = "${var.containerd_version}"
+    kubernetes_version      = "${var.kubernetes_version}"
+    kubernetes_cni_version  = "${var.kubernetes_cni_version}"
   }
 }
 

@@ -72,6 +72,12 @@ variable kubernetes_version {
   default     = "1.13.2"
 }
 
+variable kubernetes_cni_version {
+  description = "The deployed kubernetes cni version"
+  type        = "string"
+  default     = "0.6.0"
+}
+
 variable pod_subnet {
   description = "The CIDR used for the pod network"
   type        = "string"
