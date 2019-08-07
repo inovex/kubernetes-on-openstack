@@ -1,4 +1,4 @@
-# **This repositroy is only in maintanence mode and will be archived in the near future**
+# **This repositroy is only in maintenance mode and will be archived in the near future**
 
 ## Kubernetes on OpenStack
 
