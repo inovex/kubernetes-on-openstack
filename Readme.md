@@ -1,5 +1,13 @@
 # **This repositroy is only in maintenance mode and will be archived in the near future**
 
+We move this repositroy in maintenance mode for the following reasons:
+
+- This was a MVP for an easy Kubernetes installation based on community tools like [kubeadm](https://kubernetes.io/docs/reference/setup-tools/kubeadm/kubeadm) and [terraform](https://www.terraform.io)
+- The OpenStack integration is still brittle (e.g. `SecurityGroups` are not created in a reliable fasion)
+- Critical features like updates are missing
+- The setup is very opinionated (but simple)
+- There are other tools to bootstrap a Kubernetes cluster on OpenStack (even if these tools are often more complex)
+
 ## Kubernetes on OpenStack
 
 For an alternative take a look at [kube-spray](https://github.com/kubernetes-sigs/kubespray/blob/master/docs/openstack.md), [kubeone](https://github.com/kubermatic/kubeone/blob/master/docs/quickstart-openstack.md) or one of the other Kubernetes boostraping tools.
