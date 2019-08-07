@@ -1,6 +1,10 @@
-# Kubernetes on OpenStack
+# **This repositroy is only in maintanence mode and will be archived in the near future**
 
-Deploying a Kubernetes cluster on OpenStack with `kubeadm` and `terraform`.
+## Kubernetes on OpenStack
+
+For an alternative take a look at [kube-spray](https://github.com/kubernetes-sigs/kubespray/blob/master/docs/openstack.md), [kubeone](https://github.com/kubermatic/kubeone/blob/master/docs/quickstart-openstack.md) or one of the other Kubernetes boostraping tools.
+
+TLDR: This repositroy deploys an opinionated Kubernetes cluster on OpenStack with `kubeadm` and `terraform`.
 
 ## Using the module
 
